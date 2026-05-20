@@ -19,7 +19,7 @@
 require('dotenv').config();
 const express    = require('express');
 const cors       = require('cors');
-const { Client, Environment } = require('square');
+const { SquareClient, SquareEnvironment } = require('square');
 const nodemailer = require('nodemailer');
 const axios      = require('axios');
 const XLSX       = require('xlsx');
@@ -35,9 +35,9 @@ app.use(express.static('public')); // your booking form HTML lives in /public/in
 // ─────────────────────────────────────────────────────────────────────────────
 // SQUARE CLIENT
 // ─────────────────────────────────────────────────────────────────────────────
-const squareClient = new Client({
-  environment: Environment.Production,
-  accessToken: process.env.SQUARE_ACCESS_TOKEN,
+const squareClient = new SquareClient({
+  environment: SquareEnvironment.Production,
+  token: process.env.SQUARE_ACCESS_TOKEN,
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ app.post('/api/square/charge', async (req, res) => {
 
   try {
     // 1. Charge the card via Square
-    const { result } = await squareClient.paymentsApi.createPayment({
+    const { result } = await squareClient.payments.createPayment({
       sourceId,
       idempotencyKey:    crypto.randomUUID(),
       amountMoney: {
