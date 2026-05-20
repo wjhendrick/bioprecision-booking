@@ -115,14 +115,37 @@
     .sched-badge.pitch { background:#D1FAE5; color:#065F46; }
     .sched-badge.both { background:#FEF3C7; color:#92400E; }
     .admin-toggle-btn { font-size:12px; color:#6B7280; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:6px; padding:5px 12px; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:5px; }
-    .admin-panel { border:1px solid #F5C97A; background:#FFFDF5; border-radius:10px; padding:1rem; margin-bottom:1rem; }
-    .admin-panel-title { font-size:13px; font-weight:500; color:#92400E; margin-bottom:10px; display:flex; align-items:center; gap:5px; }
-    .admin-days { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-bottom:8px; }
+    .admin-panel { border:1px solid #F5C97A; background:#FFFDF5; border-radius:10px; padding:1rem 1.25rem; margin-bottom:1rem; }
+    .admin-panel-title { font-size:13px; font-weight:500; color:#92400E; margin-bottom:12px; display:flex; align-items:center; gap:5px; }
+    .admin-note { font-size:11px; color:#9CA3AF; margin-top:8px; }
+    .admin-days-row { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-bottom:12px; }
     .admin-day { text-align:center; }
     .admin-day-label { font-size:10px; color:#6B7280; margin-bottom:3px; }
     .admin-day-toggle { width:100%; padding:5px 2px; border:1px solid #E5E7EB; border-radius:5px; font-size:11px; font-weight:500; cursor:pointer; font-family:inherit; background:#D1FAE5; color:#065F46; }
-    .admin-day-toggle.closed { background:#F3F4F6; color:#9CA3AF; }
-    .admin-note { font-size:11px; color:#9CA3AF; }
+    .admin-day-toggle.closed { background:#FEE2E2; color:#991B1B; }
+    .admin-slot-section { margin-top:10px; }
+    .admin-slot-section-title { font-size:12px; font-weight:500; color:#92400E; margin-bottom:8px; }
+    .admin-slot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:6px; margin-bottom:10px; }
+    .admin-slot-btn { padding:6px 8px; border:1px solid #E5E7EB; border-radius:6px; font-size:11px; font-weight:500; text-align:center; cursor:pointer; font-family:inherit; background:#fff; color:#111827; transition:all 0.12s; }
+    .admin-slot-btn:hover:not(.booked) { background:#F9FAFB; }
+    .admin-slot-btn.blocked { background:#FEE2E2; color:#991B1B; border-color:#FECACA; }
+    .admin-slot-btn.booked { background:#EDE9FE; color:#5B21B6; border-color:#DDD6FE; cursor:not-allowed; }
+    .admin-slot-sub { font-size:9px; margin-top:1px; opacity:0.7; }
+    .bulk-actions { border:1px solid #E5E7EB; border-radius:8px; padding:1rem; margin-top:12px; background:#F9FAFB; }
+    .bulk-title { font-size:12px; font-weight:500; color:#374151; margin-bottom:8px; }
+    .bulk-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+    .bulk-select { padding:6px 10px; border:1px solid #D1D5DB; border-radius:6px; font-family:inherit; font-size:12px; background:#fff; color:#111827; width:100%; }
+    .bulk-btn-row { display:flex; gap:7px; }
+    .bulk-btn { padding:6px 14px; border:none; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; font-family:inherit; }
+    .bulk-btn.block { background:#FEE2E2; color:#991B1B; }
+    .bulk-btn.block:hover { background:#FECACA; }
+    .bulk-btn.unblock { background:#D1FAE5; color:#065F46; }
+    .bulk-btn.unblock:hover { background:#A7F3D0; }
+    .day-tabs { display:flex; gap:4px; margin-bottom:10px; flex-wrap:wrap; }
+    .day-tab { padding:4px 10px; border:1px solid #E5E7EB; border-radius:20px; font-size:11px; font-weight:500; cursor:pointer; font-family:inherit; background:#fff; color:#6B7280; }
+    .day-tab:hover { background:#F9FAFB; }
+    .day-tab.active { background:#011244; color:#fff; border-color:#011244; }
+    .day-tab.closed-tab { background:#FEE2E2; color:#991B1B; border-color:#FECACA; cursor:not-allowed; }
 
     .date-scroll { display:flex; gap:6px; margin-bottom:1rem; overflow-x:auto; padding-bottom:4px; }
     .date-btn { flex-shrink:0; width:54px; padding:7px 4px; border:1px solid #E5E7EB; border-radius:8px; cursor:pointer; font-size:11px; text-align:center; transition:all 0.15s; background:#fff; }
@@ -347,8 +370,24 @@
       </div>
       <div class="admin-panel" id="adminPanel" style="display:none">
         <div class="admin-panel-title"><i class="ti ti-lock"></i> Admin — Availability Controls</div>
-        <div class="admin-days" id="adminDays"></div>
-        <p class="admin-note">Toggle any day closed to hide it from clients.</p>
+        <div class="admin-days-row" id="adminDays"></div>
+        <div class="admin-slot-section">
+          <div class="admin-slot-section-title"><i class="ti ti-clock"></i> Block / unblock specific time slots:</div>
+          <div class="day-tabs" id="adminDayTabs"></div>
+          <div class="admin-slot-grid" id="adminSlotGrid"></div>
+        </div>
+        <div class="bulk-actions">
+          <div class="bulk-title"><i class="ti ti-adjustments"></i> Bulk block / unblock a time range:</div>
+          <div class="bulk-grid">
+            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;color:#6B7280;font-weight:500">From</label><select class="bulk-select" id="bulkFrom"><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option><option>6:00 PM</option><option>7:00 PM</option><option>8:00 PM</option></select></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;color:#6B7280;font-weight:500">To</label><select class="bulk-select" id="bulkTo"><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option><option>6:00 PM</option><option>7:00 PM</option><option>8:00 PM</option><option>9:00 PM</option></select></div>
+          </div>
+          <div class="bulk-btn-row">
+            <button class="bulk-btn block" onclick="bulkBlockSlots('block')"><i class="ti ti-ban"></i> Block range</button>
+            <button class="bulk-btn unblock" onclick="bulkBlockSlots('unblock')"><i class="ti ti-circle-check"></i> Unblock range</button>
+          </div>
+        </div>
+        <p class="admin-note">Click any slot to toggle it. Red = blocked for clients. Purple = already booked by a client.</p>
       </div>
       <p style="font-size:13px;font-weight:500;color:#6B7280;margin-bottom:6px">Select a date:</p>
       <div class="date-scroll" id="dateRow"></div>
@@ -483,6 +522,9 @@ let selClientType=null,selServiceType=null,selHittingIdx=null,selPitchingIdx=nul
 let selSide=null,selDateIdx=null,selTime=null,dates=[];
 let scheduleMode='live';
 let dayAvailability={0:true,1:true,2:true,3:true,4:true,5:true,6:true};
+let blockedSlots={}; // { 'YYYY-MM-DD': { 'HH:MM AM': true } }
+let bookedSlots={}; // { 'YYYY-MM-DD': { 'HH:MM AM': true } }
+let adminSelectedDow=1; // default to Monday
 const takenSlots={};
 let adminVisible=false,isMinor=false;
 let squareCard=null,squarePayments=null,squareReady=false;
@@ -530,11 +572,95 @@ function formatDate(d){return d.toLocaleDateString('en-US',{weekday:'short',mont
 
 function buildDatesUI(){buildDates();const row=document.getElementById('dateRow');row.innerHTML='';dates.forEach((d,i)=>{const dow=d.getDay(),isClosed=!dayAvailability[dow];const btn=document.createElement('div');btn.className='date-btn'+(isClosed?' closed-day':'');btn.innerHTML=`<div class="d-name">${d.toLocaleDateString('en-US',{weekday:'short'})}</div><div class="d-num">${d.getDate()}</div><div class="d-mon">${d.toLocaleDateString('en-US',{month:'short'})}</div>`;if(!isClosed){btn.onclick=()=>{selDateIdx=i;selTime=null;document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');buildSlotsUI();document.getElementById('slotSection').style.display='block';document.getElementById('noDateMsg').style.display='none';document.getElementById('btnStep3').disabled=true;};}row.appendChild(btn);});}
 
-function buildSlotsUI(){const dur=selHittingData&&selHittingData.type==='assessment'||selPitchingData&&selPitchingData.type==='assessment'?'assessment':'tuneup';const times=generateTimes(dur);const side=selSide==='both'?'hitting':selSide;const sideLabel=selSide==='both'?'Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';const grid=document.getElementById('slotGrid');grid.innerHTML='';document.getElementById('slotsLabel').textContent=`Available ${dur==='assessment'?'90-min':'60-min'} slots — ${sideLabel}:`;times.forEach(t=>{const tk=!!takenSlots[`${selDateIdx}-${side}-${t}`];const btn=document.createElement('button');btn.className='slot-btn'+(tk?' taken':'');btn.innerHTML=`${t}<div class="slot-sub">${dur==='assessment'?'90 min':'60 min'}</div>`;if(!tk){btn.onclick=()=>{document.querySelectorAll('.slot-btn').forEach(s=>s.classList.remove('selected'));btn.classList.add('selected');selTime=t;document.getElementById('btnStep3').disabled=false;};}grid.appendChild(btn);});}
+function buildSlotsUI(){const dur=selHittingData&&selHittingData.type==='assessment'||selPitchingData&&selPitchingData.type==='assessment'?'assessment':'tuneup';const times=generateTimes(dur);const side=selSide==='both'?'hitting':selSide;const sideLabel=selSide==='both'?'Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';const grid=document.getElementById('slotGrid');grid.innerHTML='';document.getElementById('slotsLabel').textContent=`Available ${dur==='assessment'?'90-min':'60-min'} slots — ${sideLabel}:`;times.forEach(t=>{const ds2=dates[selDateIdx]?dates[selDateIdx].toISOString().split('T')[0]:'';
+        const tk=!!(takenSlots[`${selDateIdx}-${side}-${t}`])||(blockedSlots[ds2]&&blockedSlots[ds2][t]);const btn=document.createElement('button');btn.className='slot-btn'+(tk?' taken':'');btn.innerHTML=`${t}<div class="slot-sub">${dur==='assessment'?'90 min':'60 min'}</div>`;if(!tk){btn.onclick=()=>{document.querySelectorAll('.slot-btn').forEach(s=>s.classList.remove('selected'));btn.classList.add('selected');selTime=t;document.getElementById('btnStep3').disabled=false;};}grid.appendChild(btn);});}
 
-function buildAdminPanel(){const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];const container=document.getElementById('adminDays');container.innerHTML='';days.forEach((d,i)=>{const wrap=document.createElement('div');wrap.className='admin-day';const lbl=document.createElement('div');lbl.className='admin-day-label';lbl.textContent=d;const btn=document.createElement('button');btn.className='admin-day-toggle'+(dayAvailability[i]?'':' closed');btn.textContent=dayAvailability[i]?'Open':'Closed';btn.onclick=()=>{dayAvailability[i]=!dayAvailability[i];btn.textContent=dayAvailability[i]?'Open':'Closed';btn.className='admin-day-toggle'+(dayAvailability[i]?'':' closed');buildDatesUI();};wrap.appendChild(lbl);wrap.appendChild(btn);container.appendChild(wrap);});}
+function buildAdminPanel(){
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const container=document.getElementById('adminDays');
+  container.innerHTML='';
+  days.forEach((d,i)=>{
+    const wrap=document.createElement('div');wrap.className='admin-day';
+    const lbl=document.createElement('div');lbl.className='admin-day-label';lbl.textContent=d;
+    const btn=document.createElement('button');
+    btn.className='admin-day-toggle'+(dayAvailability[i]?'':' closed');
+    btn.textContent=dayAvailability[i]?'Open':'Closed';
+    btn.onclick=()=>{dayAvailability[i]=!dayAvailability[i];btn.textContent=dayAvailability[i]?'Open':'Closed';btn.className='admin-day-toggle'+(dayAvailability[i]?'':' closed');buildDatesUI();buildAdminSlots();};
+    wrap.appendChild(lbl);wrap.appendChild(btn);container.appendChild(wrap);
+  });
+  buildAdminDayTabs();
+  buildAdminSlots();
+}
 
-function toggleAdmin(){adminVisible=!adminVisible;document.getElementById('adminPanel').style.display=adminVisible?'block':'none';}
+function buildAdminDayTabs(){
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const tabs=document.getElementById('adminDayTabs');
+  if(!tabs)return;
+  tabs.innerHTML='';
+  days.forEach((d,i)=>{
+    const btn=document.createElement('button');
+    const isClosed=!dayAvailability[i];
+    btn.className='day-tab'+(i===adminSelectedDow?' active':'')+(isClosed?' closed-tab':'');
+    btn.textContent=d;
+    if(!isClosed){btn.onclick=()=>{adminSelectedDow=i;buildAdminDayTabs();buildAdminSlots();};}
+    tabs.appendChild(btn);
+  });
+}
+
+function buildAdminSlots(){
+  const grid=document.getElementById('adminSlotGrid');
+  if(!grid)return;
+  grid.innerHTML='';
+  const ADMIN_TIMES=['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM','9:00 PM'];
+  // Get the next occurrence of adminSelectedDow
+  const today=new Date();
+  const diff=(adminSelectedDow-today.getDay()+7)%7||7;
+  const targetDate=new Date(today);targetDate.setDate(today.getDate()+diff);
+  const ds=targetDate.toISOString().split('T')[0];
+  ADMIN_TIMES.forEach(t=>{
+    const isBlocked=blockedSlots[ds]&&blockedSlots[ds][t];
+    const isBooked=bookedSlots[ds]&&bookedSlots[ds][t];
+    const btn=document.createElement('button');
+    btn.className='admin-slot-btn'+(isBooked?' booked':isBlocked?' blocked':'');
+    btn.innerHTML=t+'<div class="admin-slot-sub">'+(isBooked?'Booked':isBlocked?'Blocked':'Open')+'</div>';
+    if(!isBooked){
+      btn.onclick=()=>{
+        if(!blockedSlots[ds])blockedSlots[ds]={};
+        blockedSlots[ds][t]=!blockedSlots[ds][t];
+        if(!blockedSlots[ds][t])delete blockedSlots[ds][t];
+        buildAdminSlots();buildSlotsUI();
+      };
+    }
+    grid.appendChild(btn);
+  });
+}
+
+function bulkBlockSlots(action){
+  const ADMIN_TIMES=['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM','9:00 PM'];
+  const from=document.getElementById('bulkFrom').value;
+  const to=document.getElementById('bulkTo').value;
+  const fromIdx=ADMIN_TIMES.indexOf(from),toIdx=ADMIN_TIMES.indexOf(to);
+  if(fromIdx>=toIdx){alert('From time must be before To time.');return;}
+  const slotsToAct=ADMIN_TIMES.slice(fromIdx,toIdx);
+  const today=new Date();
+  // Apply to the selected day (next occurrence) and all future same days for 3 weeks
+  for(let w=0;w<3;w++){
+    const diff=(adminSelectedDow-today.getDay()+7)%7+w*7||(w===0?7:w*7);
+    const d=new Date(today);d.setDate(today.getDate()+(adminSelectedDow-today.getDay()+7)%7+(w===0&&(adminSelectedDow-today.getDay()+7)%7===0?7:0)+w*7);
+    // Simpler: just use the current week's date for that dow
+    const base=new Date(today);base.setDate(today.getDate()+(adminSelectedDow-today.getDay()+7)%7+(dayAvailability[adminSelectedDow]?0:0));
+    const ds=base.toISOString().split('T')[0];
+    if(!blockedSlots[ds])blockedSlots[ds]={};
+    slotsToAct.forEach(t=>{
+      if(action==='block')blockedSlots[ds][t]=true;
+      else delete blockedSlots[ds][t];
+    });
+    break; // apply to selected day's next occurrence only for now
+  }
+  buildAdminSlots();buildSlotsUI();
+}
+
+function toggleAdmin(){adminVisible=!adminVisible;document.getElementById('adminPanel').style.display=adminVisible?'block':'none';if(adminVisible){buildAdminPanel();}}
 
 function getScheduleMode(){if(selClientType==='team')return 'team';const types=[selHittingData?.type,selPitchingData?.type].filter(Boolean);if(types.length&&types.every(t=>t==='remote'))return 'remote';return 'live';}
 
