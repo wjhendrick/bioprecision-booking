@@ -366,7 +366,8 @@ async function sendClientConfirmation(booking, payment, amountCents) {
 // ─────────────────────────────────────────────────────────────────────────────
 // START SERVER
 // ─────────────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
+app.get('/health', (req, res) => res.status(200).send('OK'));
 app.listen(PORT, () => {
   console.log(`\n🚀 BioPrecision server running on port ${PORT}`);
   console.log(`   Square location: ${process.env.SQUARE_LOCATION_ID}`);
