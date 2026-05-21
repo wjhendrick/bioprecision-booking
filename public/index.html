@@ -660,7 +660,23 @@ function bulkBlockSlots(action){
   buildAdminSlots();buildSlotsUI();
 }
 
-function toggleAdmin(){adminVisible=!adminVisible;document.getElementById('adminPanel').style.display=adminVisible?'block':'none';if(adminVisible){buildAdminPanel();}}
+function toggleAdmin(){
+  if(adminVisible){
+    adminVisible=false;
+    document.getElementById('adminPanel').style.display='none';
+    return;
+  }
+  // Prompt for admin password
+  const pwd=prompt('Enter admin password:');
+  if(pwd===null)return; // cancelled
+  if(pwd==='WVUBaseball2026!'){
+    adminVisible=true;
+    document.getElementById('adminPanel').style.display='block';
+    buildAdminPanel();
+  } else {
+    alert('Incorrect password.');
+  }
+}
 
 function getScheduleMode(){if(selClientType==='team')return 'team';const types=[selHittingData?.type,selPitchingData?.type].filter(Boolean);if(types.length&&types.every(t=>t==='remote'))return 'remote';return 'live';}
 
