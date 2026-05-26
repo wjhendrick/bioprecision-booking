@@ -894,8 +894,12 @@ function goStep(n){
   if(n===3){
     if(scheduleMode==='live'&&(selDateIdx===null||!selTime)){alert('Please select a date and time slot.');return;}
     if(scheduleMode==='team'){
-      // Team bookings skip payment — fire request email and go straight to success
-      showSuccessScreen();return;
+      // Team bookings skip payment — navigate to success directly
+      document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+      document.querySelectorAll('.bp-step').forEach(el=>el.classList.add('done'));
+      document.getElementById('secDone').classList.add('active');
+      showSuccessScreen();
+      return;
     }
     buildConfirm();setTimeout(initSquare,300);
   }
