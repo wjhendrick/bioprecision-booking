@@ -441,8 +441,17 @@ app.post('/api/team/request', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // START SERVER
 // ─────────────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const PORT = process.env.PORT || 8080;
+
+// Health check for Railway
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
+// Serve booking form
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 BioPrecision server running on port ${PORT}`);
   console.log(`   Square location: ${process.env.SQUARE_LOCATION_ID}`);
   console.log(`   Notifications → ${process.env.NOTIFY_EMAIL}\n`);
