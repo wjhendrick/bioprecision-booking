@@ -368,7 +368,10 @@
     <div id="liveSchedule" style="display:none">
       <div class="sched-header">
         <div id="schedBadge"></div>
-        <button class="admin-toggle-btn" onclick="toggleAdmin()"><i class="ti ti-settings"></i> Admin: manage availability</button>
+        <div style="display:flex;gap:8px">
+          <button class="admin-toggle-btn" onclick="toggleAdmin()"><i class="ti ti-settings"></i> Admin: manage availability</button>
+          <button class="admin-toggle-btn" onclick="toggleTestMode()" id="testModeBtn"><i class="ti ti-flask"></i> Test mode</button>
+        </div>
       </div>
       <div class="admin-panel" id="adminPanel" style="display:none">
         <div class="admin-panel-title"><i class="ti ti-lock"></i> Admin — Availability Controls</div>
@@ -487,6 +490,11 @@
             <div class="sq-powered"><i class="ti ti-square-rounded" style="font-size:11px"></i> Powered by <span>Square</span></div>
             <button class="pay-btn" id="payBtn" onclick="processPayment()" disabled><i class="ti ti-lock"></i> Complete payment & confirm booking</button>
             <div class="payment-required-note"><i class="ti ti-alert-circle"></i> Your session is only confirmed once payment is successfully processed. A receipt and confirmation will be emailed immediately.</div>
+            <div id="testModeSection" style="display:none;margin-top:12px;padding:10px 14px;background:#FFF8EE;border:1px solid #F5C97A;border-radius:8px">
+              <div style="font-size:12px;font-weight:600;color:#92400E;margin-bottom:6px"><i class="ti ti-flask"></i> Test Mode Active</div>
+              <div style="font-size:12px;color:#92400E;margin-bottom:8px">Clicking below sends real emails but does NOT charge a card. Use this to verify email templates.</div>
+              <button onclick="runTestCharge()" style="padding:8px 16px;border:none;border-radius:6px;background:#92400E;color:#fff;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit"><i class="ti ti-send"></i> Send test emails (no charge)</button>
+            </div>
           </div>
         </div>
       </div>
@@ -513,6 +521,8 @@
 const SQUARE_APP_ID      = 'sq0idp-K-gpGbesdSUK9ZyAEBSaQw';
 const SQUARE_LOCATION_ID = 'L23VG08ZFF9G3';
 const SERVER_URL         = ''; // empty = same origin (Railway serves both)
+const TEST_MODE_PWD      = 'BioPrecision2025!'; // same as admin password
+let   testModeActive     = false;
 
 // ── Session data ──
 const INDIV_HITTING=[{name:"Advanced Hitting Assessment",price:"$400",detail:"Full biomechanics — 1.5 hrs. Motion capture, ground force, swing design, PDF report.",type:"assessment"},{name:"In-House Hitting Membership",price:"$500/mo",detail:"Monthly — 1 hr/week in-house training. Initial evaluation required.",type:"membership"},{name:"Remote Hitting Membership",price:"$300/mo",detail:"Monthly remote — 1 hr video call/month + remote training plan. Initial evaluation required.",type:"remote"},{name:"Hitting Tune-Up — Single Session",price:"$125",detail:"1-hour individualized in-house hitting tune-up.",type:"tuneup"},{name:"Hitting Tune-Up — 4-Session Pack",price:"$450",detail:"Four 1-hour hitting tune-up sessions.",type:"tuneup"},{name:"Hitting Tune-Up — 10-Session Pack",price:"$1,000",detail:"Ten 1-hour hitting tune-up sessions.",type:"tuneup"},{name:"Recruitment Readiness Package",price:"$1,500",detail:"Athlete assessment, 1-month remote plan, recruitment strategy & highlight video.",type:"assessment"}];
@@ -854,6 +864,72 @@ async function showSuccessScreen(){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.bp-step').forEach(el=>el.classList.add('done'));
   document.getElementById('secDone').classList.add('active');
+}
+
+function toggleTestMode(){
+  const pwd=prompt('Enter admin password to enable test mode:');
+  if(pwd===null)return;
+  if(pwd===TEST_MODE_PWD){
+    testModeActive=!testModeActive;
+    const btn=document.getElementById('testModeBtn');
+    const section=document.getElementById('testModeSection');
+    if(testModeActive){
+      btn.style.background='#FEF3C7';btn.style.color='#92400E';btn.style.borderColor='#F5C97A';
+      btn.innerHTML='<i class="ti ti-flask"></i> Test mode ON';
+      if(section)section.style.display='block';
+      alert('Test mode ON — emails will send but no card will be charged.');
+    } else {
+      btn.style.background='';btn.style.color='';btn.style.borderColor='';
+      btn.innerHTML='<i class="ti ti-flask"></i> Test mode';
+      if(section)section.style.display='none';
+    }
+  } else {
+    alert('Incorrect password.');
+  }
+}
+
+async function runTestCharge(){
+  const btn=event.target.closest('button');
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Sending test emails...';
+  try{
+    const fname=document.getElementById('fname').value.trim()||'Test';
+    const lname=document.getElementById('lname').value.trim()||'User';
+    const email=document.getElementById('email').value.trim()||process.env?.NOTIFY_EMAIL||'test@test.com';
+    const priceStr=document.getElementById('payAmount').textContent.replace(/[^0-9.]/g,'')||'0';
+    const amountCents=Math.round(parseFloat(priceStr)*100)||0;
+    const response=await fetch('/api/test/charge',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        amountMoney:{amount:amountCents,currency:'USD'},
+        booking:{
+          name:fname+' '+lname,firstName:fname,lastName:lname,
+          email,phone:document.getElementById('phone').value||'—',
+          weight:document.getElementById('weight').value,
+          level:document.getElementById('level').value,
+          referral:document.getElementById('referral').value,
+          session:document.getElementById('sumSession').textContent,
+          serviceType:selServiceType,side:selSide,
+          sessionType:selHittingData?.type||selPitchingData?.type||'tuneup',
+          clientType:selClientType,
+          dateTime:document.getElementById('sumDateTime')?.textContent||'Test booking',
+          date:'',time:'',
+        }
+      })
+    });
+    const result=await response.json();
+    if(result.success){
+      alert('✅ Test emails sent successfully! Check your inbox at wjhendrick@bioprecision.com');
+      btn.innerHTML='<i class="ti ti-check"></i> Emails sent!';
+      btn.style.background='#16A34A';
+    } else {
+      throw new Error(result.error);
+    }
+  } catch(err){
+    alert('❌ Test failed: '+err.message);
+    btn.disabled=false;
+    btn.innerHTML='<i class="ti ti-send"></i> Send test emails (no charge)';
+  }
 }
 
 function goStep(n){
