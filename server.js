@@ -433,7 +433,8 @@ app.post('/api/team/request', async (req, res) => {
     res.json({ success: true });
 
   } catch (error) {
-    console.error('❌ Team request email error:', error);
+    console.error('❌ Team request email error:', error.message);
+    console.error('   Full error:', JSON.stringify(error, null, 2));
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -454,5 +455,17 @@ app.get('/', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 BioPrecision server running on port ${PORT}`);
   console.log(`   Square location: ${process.env.SQUARE_LOCATION_ID}`);
+  console.log(`   SMTP host: ${process.env.SMTP_HOST}`);
+  console.log(`   SMTP user: ${process.env.SMTP_USER}`);
+  console.log(`   SMTP pass set: ${process.env.SMTP_PASS ? 'YES (' + process.env.SMTP_PASS.length + ' chars)' : 'NO - MISSING'}`);
   console.log(`   Notifications → ${process.env.NOTIFY_EMAIL}\n`);
+
+  // Verify SMTP connection on startup
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error('❌ SMTP connection FAILED:', error.message);
+    } else {
+      console.log('✅ SMTP connection verified — ready to send emails');
+    }
+  });
 });
