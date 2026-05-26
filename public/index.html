@@ -283,40 +283,40 @@
     <p class="section-title">Your information</p>
     <p class="section-sub">Please fill out your details before booking a session.</p>
     <div class="form-grid">
-      <div class="form-group"><label>First name <span class="req">*</span></label><input type="text" id="fname" placeholder="First name"></div>
-      <div class="form-group"><label>Last name <span class="req">*</span></label><input type="text" id="lname" placeholder="Last name"></div>
-      <div class="form-group"><label>Email <span class="req">*</span></label><input type="email" id="email" placeholder="you@example.com"></div>
-      <div class="form-group"><label>Phone <span class="req">*</span></label><input type="tel" id="phone" placeholder="(304) 000-0000"></div>
-      <div class="form-group"><label>Date of birth</label><input type="text" id="dob" placeholder="MM/DD/YYYY"></div>
-      <div class="form-group"><label>Age</label><input type="number" id="age" placeholder="Age" min="8" max="60"></div>
+      <div class="form-group"><label>First name <span class="req">*</span></label><input type="text" id="fname" required placeholder="First name"></div>
+      <div class="form-group"><label>Last name <span class="req">*</span></label><input type="text" id="lname" required placeholder="Last name"></div>
+      <div class="form-group"><label>Email <span class="req">*</span></label><input type="email" id="email" required placeholder="you@example.com"></div>
+      <div class="form-group"><label>Phone <span class="req">*</span></label><input type="tel" id="phone" required placeholder="(304) 000-0000"></div>
+      <div class="form-group"><label>Date of birth <span class="req">*</span></label><input type="text" id="dob" required placeholder="MM/DD/YYYY"></div>
+      <div class="form-group"><label>Age <span class="req">*</span></label><input type="number" id="age" required placeholder="Age" min="8" max="60"></div>
       <div class="divider-label">Physical</div>
-      <div class="form-group"><label>Height</label>
+      <div class="form-group"><label>Height <span class="req">*</span></label>
         <div style="display:flex;gap:6px">
           <select id="heightFt" style="flex:1"><option value="">ft</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
           <select id="heightIn" style="flex:1"><option value="">in</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option></select>
         </div>
       </div>
-      <div class="form-group"><label>Weight (lbs)</label><input type="number" id="weight" placeholder="lbs" min="60" max="400"></div>
+      <div class="form-group"><label>Weight (lbs) <span class="req">*</span></label><input type="number" id="weight" required placeholder="lbs" min="60" max="400"></div>
       <div class="divider-label">Baseball background</div>
-      <div class="form-group"><label>Current team / school</label><input type="text" id="teamSchool" placeholder="Team or school name"></div>
+      <div class="form-group"><label>Current team / school <span class="req">*</span></label><input type="text" id="teamSchool" required placeholder="Team or school name"></div>
       <div class="form-group"><label>Level of play <span class="req">*</span></label>
-        <select id="level"><option value="">Select level...</option><option>High school</option><option>College</option><option>Amateur / independent</option><option>Professional</option></select>
+        <select id="level" required><option value="">Select level...</option><option>High school</option><option>College</option><option>Amateur / independent</option><option>Professional</option></select>
       </div>
       <div class="form-group"><label>Position(s) <span class="req">*</span></label>
-        <select id="position"><option value="">Select position...</option><option>Pitcher</option><option>Catcher</option><option>Infielder</option><option>Outfielder</option><option>Two-way</option></select>
+        <select id="position" required><option value="">Select position...</option><option>Pitcher</option><option>Catcher</option><option>Infielder</option><option>Outfielder</option><option>Two-way</option></select>
       </div>
-      <div class="form-group"><label>Throws</label><select id="throws"><option value="">Select...</option><option>Right</option><option>Left</option><option>Switch</option></select></div>
-      <div class="form-group"><label>Bats</label><select id="bats"><option value="">Select...</option><option>Right</option><option>Left</option><option>Switch</option></select></div>
+      <div class="form-group"><label>Throws <span class="req">*</span></label><select id="throws" required><option value="">Select...</option><option>Right</option><option>Left</option><option>Switch</option></select></div>
+      <div class="form-group"><label>Bats <span class="req">*</span></label><select id="bats" required><option value="">Select...</option><option>Right</option><option>Left</option><option>Switch</option></select></div>
       <div class="divider-label">Referral</div>
-      <div class="form-group full"><label>Referred by</label>
-        <select id="referral">
+      <div class="form-group full"><label>Referred by <span class="req">*</span></label>
+        <select id="referral" required>
           <option value="">Select referral source...</option>
           <optgroup label="Partners"><option>Jason Slack</option><option>Chase Rowe (BattleGround)</option><option>Keith Regn (Colossal)</option><option>Dan Overcash (Next Level Prospects)</option></optgroup>
           <optgroup label="Other"><option>Social media</option><option>Google / web search</option><option>Word of mouth</option><option>BioPrecision website</option><option>Other</option></optgroup>
         </select>
       </div>
       <div class="divider-label">Session goals</div>
-      <div class="form-group full"><label>Goals / notes for this session</label><input type="text" id="goals" placeholder="What are you hoping to work on or achieve?"></div>
+      <div class="form-group full"><label>Goals / notes for this session <span class="req">*</span></label><input type="text" id="goals" required placeholder="What are you hoping to work on or achieve?"></div>
     </div>
     <div class="btn-row"><button class="btn-next" onclick="goStep(1)">Continue <i class="ti ti-arrow-right"></i></button></div>
   </div>
@@ -341,16 +341,18 @@
     <div class="service-section" id="tier2-team">
       <div id="trailTeam" class="selection-trail"></div>
       <p class="subsection-label">Which team service are you booking?</p>
-      <div class="stype-grid two-col">
-        <div class="stype-card" id="st-hitting" onclick="selectServiceType('hitting')"><div class="stype-icon hit"><i class="ti ti-ball-baseball"></i></div><h3>Hitting</h3><p>Team hitting evaluation or prospect session</p><div class="stype-check"><i class="ti ti-check"></i></div></div>
-        <div class="stype-card" id="st-pitching" onclick="selectServiceType('pitching')"><div class="stype-icon pitch"><i class="ti ti-wind"></i></div><h3>Pitching</h3><p>Team pitching evaluation or prospect session</p><div class="stype-check"><i class="ti ti-check"></i></div></div>
+      <div class="stype-grid">
+        <div class="stype-card" id="st-hitting" onclick="selectServiceType('hitting')"><div class="stype-icon hit"><i class="ti ti-ball-baseball"></i></div><h3>Hitting</h3><p>Team hitting assessment + optional field workout</p><div class="stype-check"><i class="ti ti-check"></i></div></div>
+        <div class="stype-card" id="st-pitching" onclick="selectServiceType('pitching')"><div class="stype-icon pitch"><i class="ti ti-wind"></i></div><h3>Pitching</h3><p>Team pitching assessment + optional field workout</p><div class="stype-check"><i class="ti ti-check"></i></div></div>
+        <div class="stype-card" id="st-both" onclick="selectServiceType('both')"><div class="stype-icon both"><i class="ti ti-arrows-exchange"></i></div><h3>Both (Two-Way)</h3><p>Hitting & pitching assessments + optional field workout</p><div class="stype-check"><i class="ti ti-check"></i></div></div>
       </div>
     </div>
     <div class="session-panel" id="panel-indiv-hitting"><div id="trailIndivHit" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-hit"></span> Select your hitting session:</p><div id="opts-indiv-hitting"></div></div>
     <div class="session-panel" id="panel-indiv-pitching"><div id="trailIndivPitch" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-pitch"></span> Select your pitching session:</p><div id="opts-indiv-pitching"></div></div>
     <div class="session-panel" id="panel-indiv-both"><div id="trailIndivBoth" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-hit"></span> Select one session from each side:</p><div class="two-way-grid"><div><div class="two-way-col-label hit"><i class="ti ti-ball-baseball" style="font-size:12px"></i> Hitting session</div><div id="opts-both-hit"></div></div><div><div class="two-way-col-label pitch"><i class="ti ti-wind" style="font-size:12px"></i> Pitching session</div><div id="opts-both-pitch"></div></div></div></div>
-    <div class="session-panel" id="panel-team-hitting"><div id="trailTeamHit" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-team"></span> Select your team hitting session:</p><div id="opts-team-hitting"></div></div>
-    <div class="session-panel" id="panel-team-pitching"><div id="trailTeamPitch" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-team"></span> Select your team pitching session:</p><div id="opts-team-pitching"></div></div>
+    <div class="session-panel" id="panel-team-hitting"><div id="trailTeamHit" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-team"></span> Select your team hitting services (you may select both):</p><div id="opts-team-hitting"></div></div>
+    <div class="session-panel" id="panel-team-pitching"><div id="trailTeamPitch" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-team"></span> Select your team pitching services (you may select both):</p><div id="opts-team-pitching"></div></div>
+    <div class="session-panel" id="panel-team-both"><div id="trailTeamBoth" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-team"></span> Select your team two-way services (you may select both):</p><div id="opts-team-both"></div></div>
     <div class="btn-row">
       <button class="btn-back" onclick="goStep(0)"><i class="ti ti-arrow-left"></i> Back</button>
       <button class="btn-next" id="btnStep2" onclick="goStep(2)" disabled>Continue <i class="ti ti-arrow-right"></i></button>
@@ -513,11 +515,21 @@ const SQUARE_LOCATION_ID = 'L23VG08ZFF9G3';
 const SERVER_URL         = ''; // empty = same origin (Railway serves both)
 
 // ── Session data ──
-const INDIV_HITTING=[{name:"Advanced BioPrecision Hitting Evaluation",price:"$400",detail:"Full biomechanics — 1.5 hrs. Motion capture, ground force, swing design, PDF report.",type:"assessment"},{name:"Advanced Hitting Membership",price:"$500/mo",detail:"Monthly — 1 hr/week in-house training. Initial evaluation required.",type:"membership"},{name:"Remote Hitting Support",price:"$300/mo",detail:"Monthly remote — 1 hr video call/month + training plan. Initial evaluation required.",type:"remote"},{name:"Hitting Tune-Up — Single Session",price:"$125",detail:"1-hour individualized in-house hitting tune-up.",type:"tuneup"},{name:"Hitting Tune-Up — 4-Session Pack",price:"$450",detail:"Four 1-hour hitting tune-up sessions.",type:"tuneup"},{name:"Hitting Tune-Up — 10-Session Pack",price:"$1,000",detail:"Ten 1-hour hitting tune-up sessions.",type:"tuneup"},{name:"Recruitment Readiness Package",price:"$1,500",detail:"Athlete assessment, 1-month remote plan, recruitment strategy & highlight video.",type:"assessment"}];
-const INDIV_PITCHING=[{name:"Advanced BioPrecision Pitching Evaluation",price:"$400",detail:"Full biomechanics — 1.5 hrs. Motion capture, kinematic sequencing, joint stress, pitch design, PDF report.",type:"assessment"},{name:"Advanced Pitching Membership",price:"$500/mo",detail:"Monthly — 1 hr/week in-house training. Initial evaluation required.",type:"membership"},{name:"Remote Pitching Support",price:"$300/mo",detail:"Monthly remote — 1 hr video call/month + training plan. Initial evaluation required.",type:"remote"},{name:"Pitching Tune-Up — Single Session",price:"$125",detail:"1-hour individualized in-house pitching tune-up.",type:"tuneup"},{name:"Pitching Tune-Up — 4-Session Pack",price:"$450",detail:"Four 1-hour pitching tune-up sessions.",type:"tuneup"},{name:"Pitching Tune-Up — 10-Session Pack",price:"$1,000",detail:"Ten 1-hour pitching tune-up sessions.",type:"tuneup"}];
-const TEAM_HITTING=[{name:"Team Hitting Evaluation (6+ athletes)",price:"$200/player",detail:"3-hr team biomechanics session — motion capture, swing design, PDF report per athlete.",type:"team"},{name:"Team Prospect Hitting Session (up to 20)",price:"$500/session",detail:"Full pro-style 3-hr team workout and evaluation.",type:"team"}];
-const TEAM_PITCHING=[{name:"Team Pitching Evaluation (6+ athletes)",price:"$200/player",detail:"3-hr team biomechanics session — kinematic sequencing, joint stress, pitch design, PDF report per athlete.",type:"team"},{name:"Team Prospect Pitching Session (up to 20)",price:"$500/session",detail:"Full pro-style 3-hr team workout and evaluation.",type:"team"}];
+const INDIV_HITTING=[{name:"Advanced Hitting Assessment",price:"$400",detail:"Full biomechanics — 1.5 hrs. Motion capture, ground force, swing design, PDF report.",type:"assessment"},{name:"In-House Hitting Membership",price:"$500/mo",detail:"Monthly — 1 hr/week in-house training. Initial evaluation required.",type:"membership"},{name:"Remote Hitting Membership",price:"$300/mo",detail:"Monthly remote — 1 hr video call/month + remote training plan. Initial evaluation required.",type:"remote"},{name:"Hitting Tune-Up — Single Session",price:"$125",detail:"1-hour individualized in-house hitting tune-up.",type:"tuneup"},{name:"Hitting Tune-Up — 4-Session Pack",price:"$450",detail:"Four 1-hour hitting tune-up sessions.",type:"tuneup"},{name:"Hitting Tune-Up — 10-Session Pack",price:"$1,000",detail:"Ten 1-hour hitting tune-up sessions.",type:"tuneup"},{name:"Recruitment Readiness Package",price:"$1,500",detail:"Athlete assessment, 1-month remote plan, recruitment strategy & highlight video.",type:"assessment"}];
+const INDIV_PITCHING=[{name:"Advanced Pitching Assessment",price:"$400",detail:"Full biomechanics — 1.5 hrs. Motion capture, kinematic sequencing, joint stress, pitch design, PDF report.",type:"assessment"},{name:"In-House Pitching Membership",price:"$500/mo",detail:"Monthly — 1 hr/week in-house training. Initial evaluation required.",type:"membership"},{name:"Remote Pitching Membership",price:"$300/mo",detail:"Monthly remote — 1 hr video call/month + remote training plan. Initial evaluation required.",type:"remote"},{name:"Pitching Tune-Up — Single Session",price:"$125",detail:"1-hour individualized in-house pitching tune-up.",type:"tuneup"},{name:"Pitching Tune-Up — 4-Session Pack",price:"$450",detail:"Four 1-hour pitching tune-up sessions.",type:"tuneup"},{name:"Pitching Tune-Up — 10-Session Pack",price:"$1,000",detail:"Ten 1-hour pitching tune-up sessions.",type:"tuneup"},{name:"Recruitment Readiness Package",price:"$1,500",detail:"Athlete assessment, 1-month remote plan, recruitment strategy & highlight video.",type:"assessment"}];
+const TEAM_HITTING=[
+  {name:"Advanced Hitting Assessment",price:"$200/player",detail:"Full team biomechanics session — motion capture, swing design, PDF report per athlete. 6+ athletes.",type:"team",addon:true},
+  {name:"Add-On: Team Workout at WVU Baseball Field",price:"$500/session",detail:"Add-on to the Advanced Assessment. Full pro-style team workout at WVU Baseball Field.",type:"team",addon:true},
+];
+const TEAM_PITCHING=[
+  {name:"Advanced Pitching Assessment",price:"$200/player",detail:"Full team biomechanics session — kinematic sequencing, joint stress, pitch design, PDF report per athlete. 6+ athletes.",type:"team",addon:true},
+  {name:"Add-On: Team Workout at WVU Baseball Field",price:"$500/session",detail:"Add-on to the Advanced Assessment. Full pro-style team workout at WVU Baseball Field.",type:"team",addon:true},
+];
 
+const TEAM_BOTH=[
+  {name:"Advanced Hitting & Pitching Assessments",price:"TBD",detail:"Full biomechanics assessments for two-way players — hitting and pitching. Pricing based on number of two-way players (15% discount applied). Contact BioPrecision for quote.",type:"team",addon:false},
+  {name:"Add-On: Team Workout at WVU Baseball Field",price:"$500/session",detail:"Add-on to the Advanced Assessments. Full pro-style team workout at WVU Baseball Field.",type:"team",addon:true},
+];
 let selClientType=null,selServiceType=null,selHittingIdx=null,selPitchingIdx=null,selHittingData=null,selPitchingData=null;
 let selSide=null,selDateIdx=null,selTime=null,dates=[];
 let scheduleMode='live';
@@ -531,13 +543,27 @@ let squareCard=null,squarePayments=null,squareReady=false;
 
 document.getElementById('sigDate').value=new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
 
-function renderOpts(sessions,containerId,key){
+function renderOpts(sessions,containerId,key,multiSelect){
   const el=document.getElementById(containerId);if(!el)return;el.innerHTML='';
   sessions.forEach((s,i)=>{
     const div=document.createElement('div');div.className='session-opt';div.id=`opt-${key}-${i}`;
-    div.innerHTML=`<div class="session-opt-left"><div class="s-radio"><div class="s-radio-dot"></div></div><div><div class="session-opt-name">${s.name}</div><div class="session-opt-detail">${s.detail}</div></div></div><div class="session-opt-price">${s.price}</div>`;
-    div.onclick=()=>pickSession(key,i,s);el.appendChild(div);
+    const ctrl=multiSelect
+      ?`<div class="s-checkbox" id="chk-${key}-${i}" style="width:16px;height:16px;border:2px solid #D1D5DB;border-radius:4px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>`
+      :`<div class="s-radio"><div class="s-radio-dot"></div></div>`;
+    div.innerHTML=`<div class="session-opt-left">${ctrl}<div><div class="session-opt-name">${s.name}</div><div class="session-opt-detail">${s.detail}</div></div></div><div class="session-opt-price">${s.price}</div>`;
+    div.onclick=()=>multiSelect?pickSessionMulti(key,i,s,div):pickSession(key,i,s);
+    el.appendChild(div);
   });
+}
+
+// Multi-select for team sessions (Assessment + Add-On)
+let teamSelections={}; // { key: Set of indices }
+function pickSessionMulti(key,idx,session,el){
+  if(!teamSelections[key])teamSelections[key]=new Set();
+  const s=teamSelections[key];
+  if(s.has(idx)){s.delete(idx);el.classList.remove('selected');const chk=document.getElementById(`chk-${key}-${idx}`);if(chk){chk.style.background='';chk.style.borderColor='#D1D5DB';chk.innerHTML='';}}
+  else{s.add(idx);el.classList.add('selected');const chk=document.getElementById(`chk-${key}-${idx}`);if(chk){chk.style.background='#011244';chk.style.borderColor='#011244';chk.innerHTML='<i class="ti ti-check" style="color:#fff;font-size:10px"></i>';}}
+  checkStep2();
 }
 
 function pickSession(key,idx,session){
@@ -556,14 +582,27 @@ function makeTrail(ct,st){
   return h;
 }
 
-function resetToTier1(){selClientType=null;selServiceType=null;selHittingIdx=null;selPitchingIdx=null;selHittingData=null;selPitchingData=null;document.querySelectorAll('.ctype-card').forEach(c=>c.classList.remove('selected'));document.querySelectorAll('.service-section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.session-panel').forEach(p=>p.classList.remove('active'));document.getElementById('btnStep2').disabled=true;}
-function resetToTier2(){selServiceType=null;selHittingIdx=null;selPitchingIdx=null;selHittingData=null;selPitchingData=null;document.querySelectorAll('.stype-card').forEach(c=>c.classList.remove('selected'));document.querySelectorAll('.session-panel').forEach(p=>p.classList.remove('active'));document.getElementById('btnStep2').disabled=true;if(selClientType==='individual'){document.getElementById('tier2-individual').classList.add('active');document.getElementById('trailIndiv').innerHTML=makeTrail('individual',null);}else{document.getElementById('tier2-team').classList.add('active');document.getElementById('trailTeam').innerHTML=makeTrail('team',null);}}
+function resetToTier1(){selClientType=null;selServiceType=null;selHittingIdx=null;selPitchingIdx=null;selHittingData=null;selPitchingData=null;teamSelections={};document.querySelectorAll('.ctype-card').forEach(c=>c.classList.remove('selected'));document.querySelectorAll('.service-section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.session-panel').forEach(p=>p.classList.remove('active'));document.getElementById('btnStep2').disabled=true;}
+function resetToTier2(){selServiceType=null;selHittingIdx=null;selPitchingIdx=null;selHittingData=null;selPitchingData=null;teamSelections={};document.querySelectorAll('.stype-card').forEach(c=>c.classList.remove('selected'));document.querySelectorAll('.session-panel').forEach(p=>p.classList.remove('active'));document.getElementById('btnStep2').disabled=true;if(selClientType==='individual'){document.getElementById('tier2-individual').classList.add('active');document.getElementById('trailIndiv').innerHTML=makeTrail('individual',null);}else{document.getElementById('tier2-team').classList.add('active');document.getElementById('trailTeam').innerHTML=makeTrail('team',null);}}
 
 function selectClientType(type){selClientType=type;selServiceType=null;selHittingIdx=null;selPitchingIdx=null;selHittingData=null;selPitchingData=null;document.querySelectorAll('.ctype-card').forEach(c=>c.classList.remove('selected'));document.getElementById('ct-'+type).classList.add('selected');document.querySelectorAll('.service-section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.session-panel').forEach(p=>p.classList.remove('active'));document.getElementById('btnStep2').disabled=true;if(type==='individual'){document.getElementById('tier2-individual').classList.add('active');document.getElementById('trailIndiv').innerHTML=makeTrail('individual',null);}else{document.getElementById('tier2-team').classList.add('active');document.getElementById('trailTeam').innerHTML=makeTrail('team',null);}}
 
-function selectServiceType(type){selServiceType=type;selHittingIdx=null;selPitchingIdx=null;selHittingData=null;selPitchingData=null;document.querySelectorAll('.stype-card').forEach(c=>c.classList.remove('selected'));document.querySelectorAll('.session-panel').forEach(p=>p.classList.remove('active'));document.getElementById('btnStep2').disabled=true;const px=selClientType==='individual'?'si-':'st-';const card=document.getElementById(px+type);if(card)card.classList.add('selected');const trail=makeTrail(selClientType,type);if(selClientType==='individual'){if(type==='hitting'){document.getElementById('panel-indiv-hitting').classList.add('active');document.getElementById('trailIndivHit').innerHTML=trail;}else if(type==='pitching'){document.getElementById('panel-indiv-pitching').classList.add('active');document.getElementById('trailIndivPitch').innerHTML=trail;}else{document.getElementById('panel-indiv-both').classList.add('active');document.getElementById('trailIndivBoth').innerHTML=trail;}selSide=type==='both'?'both':type;}else{if(type==='hitting'){document.getElementById('panel-team-hitting').classList.add('active');document.getElementById('trailTeamHit').innerHTML=trail;selSide='hitting';}else{document.getElementById('panel-team-pitching').classList.add('active');document.getElementById('trailTeamPitch').innerHTML=trail;selSide='pitching';}}}
+function selectServiceType(type){selServiceType=type;selHittingIdx=null;selPitchingIdx=null;selHittingData=null;selPitchingData=null;document.querySelectorAll('.stype-card').forEach(c=>c.classList.remove('selected'));document.querySelectorAll('.session-panel').forEach(p=>p.classList.remove('active'));document.getElementById('btnStep2').disabled=true;const px=selClientType==='individual'?'si-':'st-';const card=document.getElementById(px+type);if(card)card.classList.add('selected');const trail=makeTrail(selClientType,type);if(selClientType==='individual'){if(type==='hitting'){document.getElementById('panel-indiv-hitting').classList.add('active');document.getElementById('trailIndivHit').innerHTML=trail;}else if(type==='pitching'){document.getElementById('panel-indiv-pitching').classList.add('active');document.getElementById('trailIndivPitch').innerHTML=trail;}else{document.getElementById('panel-indiv-both').classList.add('active');document.getElementById('trailIndivBoth').innerHTML=trail;}selSide=type==='both'?'both':type;}else{if(type==='hitting'){document.getElementById('panel-team-hitting').classList.add('active');document.getElementById('trailTeamHit').innerHTML=trail;selSide='hitting';}
+    else if(type==='pitching'){document.getElementById('panel-team-pitching').classList.add('active');document.getElementById('trailTeamPitch').innerHTML=trail;selSide='pitching';}
+    else{document.getElementById('panel-team-both').classList.add('active');document.getElementById('trailTeamBoth').innerHTML=trail;selSide='both';}}}
 
-function checkStep2(){let ok=false;if(!selClientType||!selServiceType){ok=false;}else if(selServiceType==='hitting')ok=selHittingIdx!==null;else if(selServiceType==='pitching')ok=selPitchingIdx!==null;else if(selServiceType==='both')ok=selHittingIdx!==null&&selPitchingIdx!==null;document.getElementById('btnStep2').disabled=!ok;}
+function checkStep2(){
+  let ok=false;
+  if(!selClientType||!selServiceType){ok=false;}
+  else if(selClientType==='team'){
+    const key='team-'+(selServiceType==='hitting'?'hit':selServiceType==='pitching'?'pitch':'both');
+    ok=teamSelections[key]&&teamSelections[key].size>0;
+  }
+  else if(selServiceType==='hitting')ok=selHittingIdx!==null;
+  else if(selServiceType==='pitching')ok=selPitchingIdx!==null;
+  else if(selServiceType==='both')ok=selHittingIdx!==null&&selPitchingIdx!==null;
+  document.getElementById('btnStep2').disabled=!ok;
+}
 
 function generateTimes(type){const slots=[],dur=type==='assessment'?90:60;let h=9,m=0;while(true){if(h*60+m+dur>21*60)break;const ap=h>=12?'PM':'AM',dh=h>12?h-12:(h===0?12:h),dm=m===0?'00':m;slots.push(`${dh}:${dm} ${ap}`);m+=dur;if(m>=60){h+=Math.floor(m/60);m=m%60;}}return slots;}
 
@@ -669,7 +708,7 @@ function toggleAdmin(){
   // Prompt for admin password
   const pwd=prompt('Enter admin password:');
   if(pwd===null)return; // cancelled
-  if(pwd==='WVUBaseball2026!'){
+  if(pwd==='BioPrecision2025!'){
     adminVisible=true;
     document.getElementById('adminPanel').style.display='block';
     buildAdminPanel();
@@ -693,8 +732,14 @@ function buildConfirm(){
   const ctL=selClientType==='individual'?'Individual':'Team',stL=selServiceType==='both'?'Both (Two-Way)':selServiceType==='hitting'?'Hitting':'Pitching';
   document.getElementById('sumServiceType').textContent=ctL+' — '+stL;
   const sessions=[],prices=[];
-  if((selServiceType==='hitting'||selServiceType==='both')&&selHittingData){sessions.push(selHittingData.name);prices.push(selHittingData.price);}
-  if((selServiceType==='pitching'||selServiceType==='both')&&selPitchingData){sessions.push(selPitchingData.name);prices.push(selPitchingData.price);}
+  if(selClientType==='team'){
+    const key='team-'+(selServiceType==='hitting'?'hit':selServiceType==='pitching'?'pitch':'both');
+    const src=selServiceType==='hitting'?TEAM_HITTING:selServiceType==='pitching'?TEAM_PITCHING:TEAM_BOTH;
+    if(teamSelections[key]){teamSelections[key].forEach(i=>{sessions.push(src[i].name);prices.push(src[i].price);});}
+  } else {
+    if((selServiceType==='hitting'||selServiceType==='both')&&selHittingData){sessions.push(selHittingData.name);prices.push(selHittingData.price);}
+    if((selServiceType==='pitching'||selServiceType==='both')&&selPitchingData){sessions.push(selPitchingData.name);prices.push(selPitchingData.price);}
+  }
   document.getElementById('sumSession').textContent=sessions.join(' + ')||'—';
   if(scheduleMode==='team'||scheduleMode==='remote'){document.getElementById('sumSideRow').style.display='none';document.getElementById('sumDateRow').style.display='none';}
   else{document.getElementById('sumSideRow').style.display='flex';document.getElementById('sumDateRow').style.display='flex';document.getElementById('sumSide').textContent=selSide==='both'?'Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';document.getElementById('sumDateTime').textContent=(selDateIdx!==null&&selTime)?formatDate(dates[selDateIdx])+' at '+selTime:'—';}
@@ -788,7 +833,27 @@ function showSuccessScreen(){
 }
 
 function goStep(n){
-  if(n===1){const f=document.getElementById('fname').value.trim(),l=document.getElementById('lname').value.trim(),e=document.getElementById('email').value.trim(),p=document.getElementById('phone').value.trim(),lv=document.getElementById('level').value,pos=document.getElementById('position').value;if(!f||!l||!e||!p||!lv||!pos){alert('Please fill in all required fields.');return;}}
+  if(n===1){
+    const f=document.getElementById('fname').value.trim();
+    const l=document.getElementById('lname').value.trim();
+    const e=document.getElementById('email').value.trim();
+    const p=document.getElementById('phone').value.trim();
+    const dob=document.getElementById('dob').value.trim();
+    const age=document.getElementById('age').value.trim();
+    const hFt=document.getElementById('heightFt').value;
+    const hIn=document.getElementById('heightIn').value;
+    const wt=document.getElementById('weight').value.trim();
+    const tm=document.getElementById('teamSchool').value.trim();
+    const lv=document.getElementById('level').value;
+    const pos=document.getElementById('position').value;
+    const thr=document.getElementById('throws').value;
+    const bat=document.getElementById('bats').value;
+    const ref=document.getElementById('referral').value;
+    const goals=document.getElementById('goals').value.trim();
+    if(!f||!l||!e||!p||!dob||!age||!hFt||!hIn||!wt||!tm||!lv||!pos||!thr||!bat||!ref||!goals){
+      alert('Please fill in all required fields before continuing.');return;
+    }
+  }
   if(n===2){if(!selClientType){alert('Please select Individual or Team.');return;}if(!selServiceType){alert('Please select Hitting, Pitching, or Both.');return;}if(selServiceType==='hitting'&&selHittingIdx===null){alert('Please select a hitting session.');return;}if(selServiceType==='pitching'&&selPitchingIdx===null){alert('Please select a pitching session.');return;}if(selServiceType==='both'&&(selHittingIdx===null||selPitchingIdx===null)){alert('Please select both a hitting and pitching session.');return;}setupStep3();}
   if(n===3){if(scheduleMode==='live'&&(selDateIdx===null||!selTime)){alert('Please select a date and time slot.');return;}buildConfirm();setTimeout(initSquare,300);}
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
@@ -799,12 +864,13 @@ function goStep(n){
 
 const style=document.createElement('style');style.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';document.head.appendChild(style);
 
-renderOpts(INDIV_HITTING,'opts-indiv-hitting','indiv-hit');
-renderOpts(INDIV_PITCHING,'opts-indiv-pitching','indiv-pitch');
-renderOpts(INDIV_HITTING,'opts-both-hit','both-hit');
-renderOpts(INDIV_PITCHING,'opts-both-pitch','both-pitch');
-renderOpts(TEAM_HITTING,'opts-team-hitting','team-hit');
-renderOpts(TEAM_PITCHING,'opts-team-pitching','team-pitch');
+renderOpts(INDIV_HITTING,'opts-indiv-hitting','indiv-hit',false);
+renderOpts(INDIV_PITCHING,'opts-indiv-pitching','indiv-pitch',false);
+renderOpts(INDIV_HITTING,'opts-both-hit','both-hit',false);
+renderOpts(INDIV_PITCHING,'opts-both-pitch','both-pitch',false);
+renderOpts(TEAM_HITTING,'opts-team-hitting','team-hit',true);
+renderOpts(TEAM_PITCHING,'opts-team-pitching','team-pitch',true);
+renderOpts(TEAM_BOTH,'opts-team-both','team-both',true);
 </script>
 </body>
 </html>
