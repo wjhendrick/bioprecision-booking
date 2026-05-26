@@ -1,10 +1,11 @@
 {
   "name": "bioprecision-booking",
   "version": "1.0.0",
-  "description": "BioPrecision Lab Session Booking System",
+  "description": "BioPrecision Lab Session Booking System — Backend Server",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "axios": "^1.7.2",
@@ -12,7 +13,11 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "nodemailer": "^6.9.14",
+    "resend": "^3.2.0",
     "square": "^40.0.0",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
   }
 }
