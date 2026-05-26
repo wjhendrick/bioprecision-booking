@@ -9,7 +9,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F9FAFB; color: #111827; }
 
-    /* Login screen */
     #loginScreen { position:fixed; inset:0; background:#F9FAFB; display:flex; align-items:center; justify-content:center; z-index:1000; }
     .login-card { background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:2rem; width:340px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.08); }
     .login-logo { width:52px; height:52px; background:#011244; border-radius:10px; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem; }
@@ -22,7 +21,6 @@
     .login-btn:hover { opacity:0.88; }
     .login-error { font-size:12px; color:#EF4444; margin-top:8px; display:none; }
 
-    /* Main dashboard */
     #dashboard { display:none; min-height:100vh; }
     .topbar { background:#011244; color:#fff; padding:0 1.5rem; height:56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
     .topbar-left { display:flex; align-items:center; gap:10px; }
@@ -35,15 +33,13 @@
     .logout-btn { background:transparent; border:1px solid rgba(255,255,255,0.3); border-radius:6px; color:#fff; padding:4px 12px; font-size:12px; cursor:pointer; font-family:inherit; }
     .logout-btn:hover { background:rgba(255,255,255,0.1); }
 
-    .main { max-width:900px; margin:0 auto; padding:1.5rem; }
+    .main { max-width:960px; margin:0 auto; padding:1.5rem; }
 
-    /* Stats */
     .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:1.5rem; }
     .stat-card { background:#fff; border:1px solid #E5E7EB; border-radius:10px; padding:12px 16px; }
     .stat-val { font-size:24px; font-weight:600; color:#011244; }
     .stat-label { font-size:12px; color:#6B7280; margin-top:2px; }
 
-    /* Calendar */
     .cal-container { background:#fff; border:1px solid #E5E7EB; border-radius:12px; overflow:hidden; margin-bottom:1.5rem; }
     .cal-nav { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid #F3F4F6; }
     .cal-month-label { font-size:16px; font-weight:600; color:#111827; }
@@ -54,7 +50,7 @@
     .cal-head { display:grid; grid-template-columns:repeat(7,1fr); background:#F9FAFB; }
     .cal-head-day { padding:8px; text-align:center; font-size:11px; font-weight:600; color:#9CA3AF; text-transform:uppercase; letter-spacing:0.05em; }
     .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); }
-    .cal-cell { min-height:80px; border-right:1px solid #F3F4F6; border-bottom:1px solid #F3F4F6; padding:8px; cursor:pointer; transition:background 0.1s; position:relative; }
+    .cal-cell { min-height:80px; border-right:1px solid #F3F4F6; border-bottom:1px solid #F3F4F6; padding:6px; cursor:pointer; transition:background 0.1s; }
     .cal-cell:nth-child(7n) { border-right:none; }
     .cal-cell:hover:not(.other-month) { background:#F0F4FF; }
     .cal-cell.other-month { opacity:0.3; cursor:default; }
@@ -62,23 +58,24 @@
     .cal-cell.today-cell { background:#EFF6FF; }
     .cal-cell.selected-cell { background:#E0E7FF; outline:2px solid #011244; outline-offset:-2px; }
     .cal-cell.closed-cell { background:#FEF2F2; }
-    .cal-day-num { font-size:13px; font-weight:600; color:#374151; margin-bottom:5px; display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; }
-    .cal-cell.today-cell .cal-day-num { background:#011244; color:#fff; border-radius:50%; }
+    .cal-day-num { font-size:13px; font-weight:600; color:#374151; margin-bottom:4px; display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; }
+    .cal-cell.today-cell .cal-day-num { background:#011244; color:#fff; }
     .cal-cell.other-month .cal-day-num { color:#9CA3AF; }
-    .cal-indicators { display:flex; flex-wrap:wrap; gap:2px; }
+    .cal-indicators { display:flex; flex-wrap:wrap; gap:2px; margin-top:2px; }
     .ind { width:7px; height:7px; border-radius:50%; }
-    .ind-blocked { background:#EF4444; }
+    .ind-hit-blocked { background:#1D4ED8; }
+    .ind-pitch-blocked { background:#065F46; }
+    .ind-both-blocked { background:#EF4444; }
     .ind-booked { background:#7C3AED; }
     .cal-closed-text { font-size:9px; color:#EF4444; font-weight:600; margin-top:3px; text-transform:uppercase; letter-spacing:0.05em; }
 
-    /* Legend */
-    .legend { display:flex; gap:16px; flex-wrap:wrap; padding:10px 16px; border-top:1px solid #F3F4F6; }
+    .legend { display:flex; gap:14px; flex-wrap:wrap; padding:10px 16px; border-top:1px solid #F3F4F6; }
     .leg-item { display:flex; align-items:center; gap:5px; font-size:11px; color:#6B7280; }
     .leg-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
 
     /* Detail panel */
     .detail-panel { background:#fff; border:1px solid #E5E7EB; border-radius:12px; overflow:hidden; }
-    .detail-header { background:#011244; color:#fff; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; }
+    .detail-header { background:#011244; color:#fff; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
     .detail-header-title { font-size:14px; font-weight:500; display:flex; align-items:center; gap:8px; }
     .det-actions { display:flex; gap:6px; flex-wrap:wrap; }
     .det-btn { padding:5px 12px; border:1px solid rgba(255,255,255,0.3); border-radius:20px; background:transparent; color:#fff; font-size:11px; font-weight:500; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:4px; }
@@ -89,42 +86,83 @@
     .detail-body { padding:1.25rem; }
     .no-select-msg { text-align:center; padding:2rem; color:#9CA3AF; font-size:13px; }
 
-    .slots-label { font-size:12px; font-weight:600; color:#374151; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em; }
-    .slot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(95px,1fr)); gap:7px; margin-bottom:1.25rem; }
-    .slot-btn { border:1px solid #E5E7EB; border-radius:8px; padding:8px 6px; text-align:center; cursor:pointer; transition:all 0.12s; background:#fff; }
-    .slot-btn:hover:not(.booked) { background:#F9FAFB; }
-    .slot-btn.blocked { background:#FEF2F2; border-color:#FECACA; }
-    .slot-btn.booked { background:#F5F3FF; border-color:#DDD6FE; cursor:not-allowed; }
-    .slot-time-text { font-size:12px; font-weight:500; color:#374151; }
-    .slot-btn.blocked .slot-time-text { color:#991B1B; }
-    .slot-btn.booked .slot-time-text { color:#5B21B6; }
-    .slot-status-text { font-size:10px; color:#9CA3AF; margin-top:2px; }
-    .slot-btn.blocked .slot-status-text { color:#EF4444; }
-    .slot-btn.booked .slot-status-text { color:#7C3AED; }
+    /* Side tabs */
+    .side-tabs { display:flex; gap:0; margin-bottom:1.25rem; border:1px solid #E5E7EB; border-radius:8px; overflow:hidden; }
+    .side-tab { flex:1; padding:9px; text-align:center; cursor:pointer; font-size:13px; font-weight:500; color:#6B7280; background:#F9FAFB; border-right:1px solid #E5E7EB; transition:all 0.15s; display:flex; align-items:center; justify-content:center; gap:6px; }
+    .side-tab:last-child { border-right:none; }
+    .side-tab:hover { background:#F3F4F6; }
+    .side-tab.active.hit { background:#DBEAFE; color:#1D4ED8; }
+    .side-tab.active.pitch { background:#D1FAE5; color:#065F46; }
+    .side-tab.active.both { background:#E0E7FF; color:#3730A3; }
 
+    /* Slot grid — two columns for hit/pitch side by side */
+    .slots-container { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:1.25rem; }
+    .slots-side { }
+    .slots-side-header { display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:2px solid; }
+    .slots-side-header.hit { border-color:#1D4ED8; }
+    .slots-side-header.pitch { border-color:#065F46; }
+    .slots-side-label { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+    .slots-side-header.hit .slots-side-label { color:#1D4ED8; }
+    .slots-side-header.pitch .slots-side-label { color:#065F46; }
+    .side-quick-btns { display:flex; gap:4px; margin-left:auto; }
+    .side-quick-btn { padding:2px 8px; border:1px solid; border-radius:10px; font-size:10px; font-weight:500; cursor:pointer; font-family:inherit; background:transparent; }
+    .side-quick-btn.hit-block { border-color:#1D4ED8; color:#1D4ED8; }
+    .side-quick-btn.hit-block:hover { background:#DBEAFE; }
+    .side-quick-btn.hit-unblock { border-color:#065F46; color:#065F46; }
+    .side-quick-btn.hit-unblock:hover { background:#D1FAE5; }
+    .side-quick-btn.pitch-block { border-color:#1D4ED8; color:#1D4ED8; }
+    .side-quick-btn.pitch-block:hover { background:#DBEAFE; }
+    .side-quick-btn.pitch-unblock { border-color:#065F46; color:#065F46; }
+    .side-quick-btn.pitch-unblock:hover { background:#D1FAE5; }
+
+    .slot-list { display:flex; flex-direction:column; gap:5px; }
+    .slot-row { display:flex; align-items:center; justify-content:space-between; padding:6px 10px; border:1px solid #E5E7EB; border-radius:6px; cursor:pointer; transition:all 0.1s; background:#fff; }
+    .slot-row:hover:not(.s-booked) { background:#F9FAFB; }
+    .slot-row.s-hit-blocked { background:#EFF6FF; border-color:#BFDBFE; }
+    .slot-row.s-pitch-blocked { background:#ECFDF5; border-color:#A7F3D0; }
+    .slot-row.s-both-blocked { background:#FEF2F2; border-color:#FECACA; }
+    .slot-row.s-booked { background:#F5F3FF; border-color:#DDD6FE; cursor:not-allowed; }
+    .slot-time-lbl { font-size:12px; font-weight:500; color:#374151; }
+    .slot-indicators { display:flex; gap:4px; align-items:center; }
+    .slot-side-badge { font-size:10px; padding:2px 6px; border-radius:10px; font-weight:500; }
+    .badge-hit-blocked { background:#DBEAFE; color:#1D4ED8; }
+    .badge-pitch-blocked { background:#D1FAE5; color:#065F46; }
+    .badge-booked { background:#EDE9FE; color:#5B21B6; }
+    .badge-open { background:#F3F4F6; color:#9CA3AF; }
+
+    /* Bulk section */
     .bulk-section { border-top:1px solid #F3F4F6; padding-top:1rem; }
-    .bulk-section-title { font-size:12px; font-weight:600; color:#374151; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em; }
-    .bulk-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .bulk-sel { padding:6px 10px; border:1px solid #D1D5DB; border-radius:7px; font-family:inherit; font-size:13px; background:#fff; color:#111827; }
-    .bulk-action-btn { padding:6px 14px; border:none; border-radius:7px; font-size:12px; font-weight:500; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:4px; }
-    .bulk-action-btn.block { background:#FEE2E2; color:#991B1B; }
-    .bulk-action-btn.block:hover { background:#FECACA; }
-    .bulk-action-btn.unblock { background:#D1FAE5; color:#065F46; }
-    .bulk-action-btn.unblock:hover { background:#A7F3D0; }
+    .bulk-section-title { font-size:12px; font-weight:600; color:#374151; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em; }
+    .bulk-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .bulk-col-header { font-size:11px; font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:5px; }
+    .bulk-col-header.hit { color:#1D4ED8; }
+    .bulk-col-header.pitch { color:#065F46; }
+    .bulk-controls { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .bulk-sel { padding:5px 8px; border:1px solid #D1D5DB; border-radius:6px; font-family:inherit; font-size:12px; background:#fff; color:#111827; }
+    .bulk-action-btn { padding:5px 10px; border:none; border-radius:6px; font-size:11px; font-weight:500; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:3px; }
+    .bulk-action-btn.block-hit { background:#DBEAFE; color:#1D4ED8; }
+    .bulk-action-btn.block-hit:hover { background:#BFDBFE; }
+    .bulk-action-btn.unblock-hit { background:#D1FAE5; color:#065F46; }
+    .bulk-action-btn.unblock-hit:hover { background:#A7F3D0; }
+    .bulk-action-btn.block-pitch { background:#DBEAFE; color:#1D4ED8; }
+    .bulk-action-btn.block-pitch:hover { background:#BFDBFE; }
+    .bulk-action-btn.unblock-pitch { background:#D1FAE5; color:#065F46; }
+    .bulk-action-btn.unblock-pitch:hover { background:#A7F3D0; }
 
     .closed-msg { text-align:center; padding:1.5rem; }
     .closed-msg i { font-size:32px; color:#EF4444; display:block; margin-bottom:8px; }
     .closed-msg p { font-size:13px; color:#6B7280; }
 
-    @media (max-width: 600px) {
+    @media (max-width:600px) {
       .stats { grid-template-columns:1fr 1fr; }
-      .cal-cell { min-height:55px; padding:4px; }
+      .slots-container { grid-template-columns:1fr; }
+      .bulk-grid { grid-template-columns:1fr; }
     }
   </style>
 </head>
 <body>
 
-<!-- Login Screen -->
+<!-- Login -->
 <div id="loginScreen">
   <div class="login-card">
     <div class="login-logo"><i class="ti ti-dna"></i></div>
@@ -178,8 +216,9 @@
       <div class="cal-grid" id="calGrid"></div>
       <div class="legend">
         <div class="leg-item"><div class="leg-dot" style="background:#EFF6FF;border:1px solid #BFDBFE"></div> Today</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#E0E7FF;border:1px solid #011244"></div> Selected</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#EF4444"></div> Blocked slots</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#1D4ED8"></div> Hitting blocked</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#065F46"></div> Pitching blocked</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#EF4444"></div> Both sides blocked</div>
         <div class="leg-item"><div class="leg-dot" style="background:#7C3AED"></div> Client booked</div>
         <div class="leg-item"><div class="leg-dot" style="background:#FEF2F2;border:1px solid #FECACA"></div> Day closed</div>
       </div>
@@ -204,6 +243,7 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 
 let viewYear, viewMonth, selectedDK = null;
 let closedDates = new Set();
+// blockedSlots[dk][time] = { hit: bool, pitch: bool }
 let blockedSlots = {};
 let bookedSlots = {};
 
@@ -211,220 +251,278 @@ const today = new Date();
 viewYear = today.getFullYear();
 viewMonth = today.getMonth();
 
-function checkLogin() {
+function dk(y,m,d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+
+function checkLogin(){
   const pwd = document.getElementById('pwdInput').value;
-  if (pwd === ADMIN_PASSWORD) {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-    buildCalendar();
-    // Load saved data from localStorage if available
+  if(pwd===ADMIN_PASSWORD){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('dashboard').style.display='block';
     loadData();
+    buildCalendar();
   } else {
-    document.getElementById('loginError').style.display = 'block';
-    document.getElementById('pwdInput').value = '';
+    document.getElementById('loginError').style.display='block';
+    document.getElementById('pwdInput').value='';
   }
 }
 
-function logout() {
-  saveData();
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('dashboard').style.display = 'none';
-  document.getElementById('pwdInput').value = '';
-}
+function logout(){ saveData(); document.getElementById('loginScreen').style.display='flex'; document.getElementById('dashboard').style.display='none'; document.getElementById('pwdInput').value=''; }
 
-function dk(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
-
-function saveData() {
+function saveData(){
   try {
-    localStorage.setItem('bp_closed', JSON.stringify([...closedDates]));
-    localStorage.setItem('bp_blocked', JSON.stringify(blockedSlots));
-  } catch(e) {}
+    localStorage.setItem('bp_closed2', JSON.stringify([...closedDates]));
+    localStorage.setItem('bp_blocked2', JSON.stringify(blockedSlots));
+  } catch(e){}
 }
 
-function loadData() {
+function loadData(){
   try {
-    const closed = localStorage.getItem('bp_closed');
-    const blocked = localStorage.getItem('bp_blocked');
-    if (closed) closedDates = new Set(JSON.parse(closed));
-    if (blocked) blockedSlots = JSON.parse(blocked);
-    buildCalendar();
-  } catch(e) {}
+    const c=localStorage.getItem('bp_closed2'); if(c) closedDates=new Set(JSON.parse(c));
+    const b=localStorage.getItem('bp_blocked2'); if(b) blockedSlots=JSON.parse(b);
+  } catch(e){}
 }
 
-function buildCalendar() {
-  document.getElementById('calMonthLabel').textContent = `${MONTHS[viewMonth]} ${viewYear}`;
-  const grid = document.getElementById('calGrid');
-  grid.innerHTML = '';
+function getSlotState(dateKey, time){
+  const s = blockedSlots[dateKey]?.[time];
+  if(!s) return {hit:false,pitch:false};
+  return s;
+}
 
-  const first = new Date(viewYear, viewMonth, 1).getDay();
-  const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
-  const daysInPrev = new Date(viewYear, viewMonth, 0).getDate();
-  const total = Math.ceil((first + daysInMonth) / 7) * 7;
+function setSlotState(dateKey, time, hit, pitch){
+  if(!blockedSlots[dateKey]) blockedSlots[dateKey]={};
+  if(!hit && !pitch){ delete blockedSlots[dateKey][time]; }
+  else { blockedSlots[dateKey][time]={hit,pitch}; }
+}
 
-  for (let i = 0; i < total; i++) {
-    let day, year = viewYear, month = viewMonth, isOther = false;
-    if (i < first) {
-      day = daysInPrev - first + i + 1;
-      month = viewMonth - 1;
-      if (month < 0) { month = 11; year--; }
-      isOther = true;
-    } else if (i >= first + daysInMonth) {
-      day = i - first - daysInMonth + 1;
-      month = viewMonth + 1;
-      if (month > 11) { month = 0; year++; }
-      isOther = true;
-    } else {
-      day = i - first + 1;
+function buildCalendar(){
+  document.getElementById('calMonthLabel').textContent=`${MONTHS[viewMonth]} ${viewYear}`;
+  const grid=document.getElementById('calGrid'); grid.innerHTML='';
+  const first=new Date(viewYear,viewMonth,1).getDay();
+  const dim=new Date(viewYear,viewMonth+1,0).getDate();
+  const dip=new Date(viewYear,viewMonth,0).getDate();
+  const total=Math.ceil((first+dim)/7)*7;
+
+  for(let i=0;i<total;i++){
+    let day,year=viewYear,month=viewMonth,isOther=false;
+    if(i<first){ day=dip-first+i+1; month=viewMonth-1; if(month<0){month=11;year--;} isOther=true; }
+    else if(i>=first+dim){ day=i-first-dim+1; month=viewMonth+1; if(month>11){month=0;year++;} isOther=true; }
+    else { day=i-first+1; }
+
+    const dateKey=dk(year,month,day);
+    const isToday=year===today.getFullYear()&&month===today.getMonth()&&day===today.getDate();
+    const isClosed=closedDates.has(dateKey);
+    const isSelected=selectedDK===dateKey;
+
+    let hitBlocked=0,pitchBlocked=0,bothBlocked=0,booked=0;
+    if(!isOther&&!isClosed&&blockedSlots[dateKey]){
+      Object.values(blockedSlots[dateKey]).forEach(s=>{
+        if(s.hit&&s.pitch) bothBlocked++;
+        else if(s.hit) hitBlocked++;
+        else if(s.pitch) pitchBlocked++;
+      });
+    }
+    if(!isOther&&bookedSlots[dateKey]) booked=Object.keys(bookedSlots[dateKey]).length;
+
+    const cell=document.createElement('div');
+    cell.className='cal-cell'+(isOther?' other-month':'')+(isToday&&!isOther?' today-cell':'')+(isClosed&&!isOther?' closed-cell':'')+(isSelected?' selected-cell':'');
+
+    let dots='';
+    if(isClosed&&!isOther) dots='<div style="width:100%;height:4px;background:#EF4444;border-radius:2px;margin-top:4px"></div>';
+    else {
+      dots+=Array(Math.min(booked,3)).fill('<div class="ind ind-booked"></div>').join('');
+      dots+=Array(Math.min(bothBlocked,3)).fill('<div class="ind ind-both-blocked"></div>').join('');
+      dots+=Array(Math.min(hitBlocked,2)).fill('<div class="ind ind-hit-blocked"></div>').join('');
+      dots+=Array(Math.min(pitchBlocked,2)).fill('<div class="ind ind-pitch-blocked"></div>').join('');
     }
 
-    const dateKey = dk(year, month, day);
-    const isToday = year===today.getFullYear()&&month===today.getMonth()&&day===today.getDate();
-    const isClosed = closedDates.has(dateKey);
-    const isSelected = selectedDK === dateKey;
-    const bCount = blockedSlots[dateKey] ? Object.values(blockedSlots[dateKey]).filter(Boolean).length : 0;
-    const bookCount = bookedSlots[dateKey] ? Object.keys(bookedSlots[dateKey]).length : 0;
-
-    const cell = document.createElement('div');
-    cell.className = 'cal-cell' +
-      (isOther ? ' other-month' : '') +
-      (isToday && !isOther ? ' today-cell' : '') +
-      (isClosed && !isOther ? ' closed-cell' : '') +
-      (isSelected ? ' selected-cell' : '');
-
-    const dots = isClosed && !isOther
-      ? '<div style="width:100%;height:4px;background:#EF4444;border-radius:2px;margin-top:4px"></div>'
-      : [
-          ...Array(Math.min(bookCount,4)).fill('<div class="ind ind-booked"></div>'),
-          ...Array(Math.min(bCount,4)).fill('<div class="ind ind-blocked"></div>'),
-        ].join('');
-
-    cell.innerHTML = `<div class="cal-day-num">${day}</div><div class="cal-indicators">${dots}</div>${isClosed&&!isOther?'<div class="cal-closed-text">Closed</div>':''}`;
-
-    if (!isOther) cell.onclick = () => selectDate(dateKey, year, month, day);
+    cell.innerHTML=`<div class="cal-day-num">${day}</div><div class="cal-indicators">${dots}</div>${isClosed&&!isOther?'<div class="cal-closed-text">Closed</div>':''}`;
+    if(!isOther) cell.onclick=()=>selectDate(dateKey,year,month,day);
     grid.appendChild(cell);
   }
   updateStats();
 }
 
-function selectDate(dateKey, year, month, day) {
-  selectedDK = dateKey;
-  buildCalendar();
-  renderDetail(dateKey, year, month, day);
+function selectDate(dateKey,year,month,day){
+  selectedDK=dateKey; buildCalendar(); renderDetail(dateKey,year,month,day);
 }
 
-function renderDetail(dateKey, year, month, day) {
-  const isClosed = closedDates.has(dateKey);
-  const dateLabel = new Date(year, month, day).toLocaleDateString('en-US', {weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  document.getElementById('detailTitle').textContent = dateLabel;
+function renderDetail(dateKey,year,month,day){
+  const isClosed=closedDates.has(dateKey);
+  const dateLabel=new Date(year,month,day).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('detailTitle').textContent=dateLabel;
 
-  const actions = document.getElementById('detActions');
-  actions.innerHTML = '';
-
-  if (isClosed) {
-    const btn = document.createElement('button');
-    btn.className = 'det-btn green';
-    btn.innerHTML = '<i class="ti ti-circle-check"></i> Open this day';
-    btn.onclick = () => { closedDates.delete(dateKey); saveData(); buildCalendar(); renderDetail(dateKey,year,month,day); };
+  const actions=document.getElementById('detActions'); actions.innerHTML='';
+  if(isClosed){
+    const btn=document.createElement('button'); btn.className='det-btn green';
+    btn.innerHTML='<i class="ti ti-circle-check"></i> Open this day';
+    btn.onclick=()=>{closedDates.delete(dateKey);saveData();buildCalendar();renderDetail(dateKey,year,month,day);};
     actions.appendChild(btn);
   } else {
-    [{label:'<i class="ti ti-ban"></i> Close day', cls:'red', fn:()=>{closedDates.add(dateKey);saveData();buildCalendar();renderDetail(dateKey,year,month,day);}},
-     {label:'Block all', cls:'', fn:()=>{if(!blockedSlots[dateKey])blockedSlots[dateKey]={};TIMES.forEach(t=>{if(!bookedSlots[dateKey]?.[t])blockedSlots[dateKey][t]=true;});saveData();buildCalendar();renderDetail(dateKey,year,month,day);}},
-     {label:'Unblock all', cls:'', fn:()=>{blockedSlots[dateKey]={};saveData();buildCalendar();renderDetail(dateKey,year,month,day);}},
+    [
+      {label:'<i class="ti ti-ban"></i> Close day',cls:'red',fn:()=>{closedDates.add(dateKey);saveData();buildCalendar();renderDetail(dateKey,year,month,day);}},
+      {label:'Block all (both sides)',cls:'',fn:()=>{TIMES.forEach(t=>{if(!bookedSlots[dateKey]?.[t])setSlotState(dateKey,t,true,true);});saveData();buildCalendar();renderDetail(dateKey,year,month,day);}},
+      {label:'Unblock all',cls:'',fn:()=>{blockedSlots[dateKey]={};saveData();buildCalendar();renderDetail(dateKey,year,month,day);}},
     ].forEach(({label,cls,fn})=>{
-      const btn=document.createElement('button');
-      btn.className='det-btn'+(cls?' '+cls:'');
-      btn.innerHTML=label;btn.onclick=fn;
-      actions.appendChild(btn);
+      const btn=document.createElement('button'); btn.className='det-btn'+(cls?' '+cls:'');
+      btn.innerHTML=label; btn.onclick=fn; actions.appendChild(btn);
     });
   }
 
-  const body = document.getElementById('detailBody');
-
-  if (isClosed) {
-    body.innerHTML = '<div class="closed-msg"><i class="ti ti-ban"></i><p>This day is closed — no clients can book slots.<br><span style="font-size:12px">Click "Open this day" above to re-enable it.</span></p></div>';
+  const body=document.getElementById('detailBody');
+  if(isClosed){
+    body.innerHTML='<div class="closed-msg"><i class="ti ti-ban"></i><p>This day is closed — no clients can book any slots.<br><span style="font-size:12px">Click "Open this day" above to re-enable it.</span></p></div>';
     return;
   }
 
-  let html = '<div class="slots-label">Time slots — click to block / unblock</div><div class="slot-grid">';
-  TIMES.forEach(t => {
-    const isBlocked = blockedSlots[dateKey]?.[t];
-    const isBooked = bookedSlots[dateKey]?.[t];
-    const cls = isBooked ? 'booked' : isBlocked ? 'blocked' : '';
-    const label = isBooked ? 'Booked' : isBlocked ? 'Blocked' : 'Open';
-    const onclick = isBooked ? '' : `onclick="toggleSlot('${dateKey}','${t}',${year},${month},${day})"`;
-    html += `<div class="slot-btn ${cls}" ${onclick} title="${isBooked?'Client booked — cannot modify':'Click to toggle'}"><div class="slot-time-text">${t}</div><div class="slot-status-text">${label}</div></div>`;
-  });
-  html += '</div>';
+  // Build two-column slot list (hitting | pitching)
+  let html=`<div class="slots-container">`;
 
-  html += `<div class="bulk-section">
-    <div class="bulk-section-title">Bulk block / unblock</div>
-    <div class="bulk-controls">
-      <select class="bulk-sel" id="bFrom">${TIMES.slice(0,-1).map(t=>`<option>${t}</option>`).join('')}</select>
-      <span style="font-size:13px;color:#6B7280">to</span>
-      <select class="bulk-sel" id="bTo">${TIMES.slice(1).map(t=>`<option>${t}</option>`).join('')}</select>
-      <button class="bulk-action-btn block" onclick="doBulk('${dateKey}','block',${year},${month},${day})"><i class="ti ti-ban"></i> Block</button>
-      <button class="bulk-action-btn unblock" onclick="doBulk('${dateKey}','unblock',${year},${month},${day})"><i class="ti ti-circle-check"></i> Unblock</button>
+  // Hitting side
+  html+=`<div class="slots-side">
+    <div class="slots-side-header hit">
+      <i class="ti ti-ball-baseball" style="color:#1D4ED8;font-size:15px"></i>
+      <span class="slots-side-label">Hitting side</span>
+      <div class="side-quick-btns">
+        <button class="side-quick-btn hit-block" onclick="quickBlockSide('${dateKey}','hit',true,${year},${month},${day})">Block all</button>
+        <button class="side-quick-btn hit-unblock" onclick="quickBlockSide('${dateKey}','hit',false,${year},${month},${day})">Unblock all</button>
+      </div>
+    </div>
+    <div class="slot-list">`;
+  TIMES.forEach(t=>{
+    const state=getSlotState(dateKey,t);
+    const isBooked=bookedSlots[dateKey]?.[t];
+    let cls='',badge='';
+    if(isBooked){ cls='s-booked'; badge='<span class="slot-side-badge badge-booked">Booked</span>'; }
+    else if(state.hit&&state.pitch){ cls='s-both-blocked'; badge='<span class="slot-side-badge badge-hit-blocked">Hit blocked</span>'; }
+    else if(state.hit){ cls='s-hit-blocked'; badge='<span class="slot-side-badge badge-hit-blocked">Blocked</span>'; }
+    else { badge='<span class="slot-side-badge badge-open">Open</span>'; }
+    const onclick=isBooked?'':` onclick="toggleSide('${dateKey}','${t}','hit',${year},${month},${day})"`;
+    html+=`<div class="slot-row ${cls}"${onclick} title="${isBooked?'Client booked':'Click to toggle hitting side'}">
+      <span class="slot-time-lbl">${t}</span>${badge}</div>`;
+  });
+  html+=`</div></div>`;
+
+  // Pitching side
+  html+=`<div class="slots-side">
+    <div class="slots-side-header pitch">
+      <i class="ti ti-wind" style="color:#065F46;font-size:15px"></i>
+      <span class="slots-side-label">Pitching side</span>
+      <div class="side-quick-btns">
+        <button class="side-quick-btn pitch-block" onclick="quickBlockSide('${dateKey}','pitch',true,${year},${month},${day})">Block all</button>
+        <button class="side-quick-btn pitch-unblock" onclick="quickBlockSide('${dateKey}','pitch',false,${year},${month},${day})">Unblock all</button>
+      </div>
+    </div>
+    <div class="slot-list">`;
+  TIMES.forEach(t=>{
+    const state=getSlotState(dateKey,t);
+    const isBooked=bookedSlots[dateKey]?.[t];
+    let cls='',badge='';
+    if(isBooked){ cls='s-booked'; badge='<span class="slot-side-badge badge-booked">Booked</span>'; }
+    else if(state.hit&&state.pitch){ cls='s-both-blocked'; badge='<span class="slot-side-badge badge-pitch-blocked">Pitch blocked</span>'; }
+    else if(state.pitch){ cls='s-pitch-blocked'; badge='<span class="slot-side-badge badge-pitch-blocked">Blocked</span>'; }
+    else { badge='<span class="slot-side-badge badge-open">Open</span>'; }
+    const onclick=isBooked?'':` onclick="toggleSide('${dateKey}','${t}','pitch',${year},${month},${day})"`;
+    html+=`<div class="slot-row ${cls}"${onclick} title="${isBooked?'Client booked':'Click to toggle pitching side'}">
+      <span class="slot-time-lbl">${t}</span>${badge}</div>`;
+  });
+  html+=`</div></div>`;
+  html+=`</div>`;
+
+  // Bulk section
+  html+=`<div class="bulk-section">
+    <div class="bulk-section-title">Bulk block / unblock by time range</div>
+    <div class="bulk-grid">
+      <div>
+        <div class="bulk-col-header hit"><i class="ti ti-ball-baseball" style="font-size:13px"></i> Hitting side</div>
+        <div class="bulk-controls">
+          <select class="bulk-sel" id="hFrom">${TIMES.slice(0,-1).map(t=>`<option>${t}</option>`).join('')}</select>
+          <span style="font-size:12px;color:#6B7280">to</span>
+          <select class="bulk-sel" id="hTo">${TIMES.slice(1).map((t,i)=>`<option${i===0?' selected':''}>${t}</option>`).join('')}</select>
+          <button class="bulk-action-btn block-hit" onclick="doBulk('${dateKey}','hit','block',${year},${month},${day})"><i class="ti ti-ban"></i> Block</button>
+          <button class="bulk-action-btn unblock-hit" onclick="doBulk('${dateKey}','hit','unblock',${year},${month},${day})"><i class="ti ti-circle-check"></i> Unblock</button>
+        </div>
+      </div>
+      <div>
+        <div class="bulk-col-header pitch"><i class="ti ti-wind" style="font-size:13px"></i> Pitching side</div>
+        <div class="bulk-controls">
+          <select class="bulk-sel" id="pFrom">${TIMES.slice(0,-1).map(t=>`<option>${t}</option>`).join('')}</select>
+          <span style="font-size:12px;color:#6B7280">to</span>
+          <select class="bulk-sel" id="pTo">${TIMES.slice(1).map((t,i)=>`<option${i===0?' selected':''}>${t}</option>`).join('')}</select>
+          <button class="bulk-action-btn block-pitch" onclick="doBulk('${dateKey}','pitch','block',${year},${month},${day})"><i class="ti ti-ban"></i> Block</button>
+          <button class="bulk-action-btn unblock-pitch" onclick="doBulk('${dateKey}','pitch','unblock',${year},${month},${day})"><i class="ti ti-circle-check"></i> Unblock</button>
+        </div>
+      </div>
     </div>
   </div>`;
 
-  body.innerHTML = html;
+  body.innerHTML=html;
 }
 
-function toggleSlot(dateKey, time, year, month, day) {
-  if (bookedSlots[dateKey]?.[time]) return;
-  if (!blockedSlots[dateKey]) blockedSlots[dateKey] = {};
-  blockedSlots[dateKey][time] = !blockedSlots[dateKey][time];
-  if (!blockedSlots[dateKey][time]) delete blockedSlots[dateKey][time];
-  saveData();
-  buildCalendar();
-  renderDetail(dateKey, year, month, day);
+function toggleSide(dateKey,time,side,year,month,day){
+  if(bookedSlots[dateKey]?.[time]) return;
+  const state=getSlotState(dateKey,time);
+  if(side==='hit') setSlotState(dateKey,time,!state.hit,state.pitch);
+  else setSlotState(dateKey,time,state.hit,!state.pitch);
+  saveData(); buildCalendar(); renderDetail(dateKey,year,month,day);
 }
 
-function doBulk(dateKey, action, year, month, day) {
-  const from = document.getElementById('bFrom').value;
-  const to = document.getElementById('bTo').value;
-  const fi = TIMES.indexOf(from), ti2 = TIMES.indexOf(to);
-  if (fi >= ti2) { alert('From time must be before To time.'); return; }
-  if (!blockedSlots[dateKey]) blockedSlots[dateKey] = {};
-  TIMES.slice(fi, ti2).forEach(t => {
-    if (bookedSlots[dateKey]?.[t]) return;
-    if (action === 'block') blockedSlots[dateKey][t] = true;
-    else delete blockedSlots[dateKey][t];
+function quickBlockSide(dateKey,side,block,year,month,day){
+  TIMES.forEach(t=>{
+    if(bookedSlots[dateKey]?.[t]) return;
+    const state=getSlotState(dateKey,t);
+    if(side==='hit') setSlotState(dateKey,t,block,state.pitch);
+    else setSlotState(dateKey,t,state.hit,block);
   });
-  saveData();
-  buildCalendar();
-  renderDetail(dateKey, year, month, day);
+  saveData(); buildCalendar(); renderDetail(dateKey,year,month,day);
 }
 
-function changeMonth(dir) {
-  viewMonth += dir;
-  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
-  if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+function doBulk(dateKey,side,action,year,month,day){
+  const fromSel=side==='hit'?'hFrom':'pFrom';
+  const toSel=side==='hit'?'hTo':'pTo';
+  const from=document.getElementById(fromSel).value;
+  const to=document.getElementById(toSel).value;
+  const fi=TIMES.indexOf(from),ti=TIMES.indexOf(to);
+  if(fi>=ti){alert('From time must be before To time.');return;}
+  TIMES.slice(fi,ti).forEach(t=>{
+    if(bookedSlots[dateKey]?.[t]) return;
+    const state=getSlotState(dateKey,t);
+    const block=action==='block';
+    if(side==='hit') setSlotState(dateKey,t,block,state.pitch);
+    else setSlotState(dateKey,t,state.hit,block);
+  });
+  saveData(); buildCalendar(); renderDetail(dateKey,year,month,day);
+}
+
+function changeMonth(dir){
+  viewMonth+=dir;
+  if(viewMonth>11){viewMonth=0;viewYear++;}
+  if(viewMonth<0){viewMonth=11;viewYear--;}
   buildCalendar();
 }
 
-function goToday() {
-  viewYear = today.getFullYear();
-  viewMonth = today.getMonth();
-  buildCalendar();
+function goToday(){
+  viewYear=today.getFullYear(); viewMonth=today.getMonth(); buildCalendar();
 }
 
-function updateStats() {
-  let open=0, blocked=0, booked=0, closed=0;
-  const dim = new Date(viewYear, viewMonth+1, 0).getDate();
-  for (let d=1; d<=dim; d++) {
-    const dateKey = dk(viewYear, viewMonth, d);
-    if (closedDates.has(dateKey)) { closed++; continue; }
-    TIMES.forEach(t => {
-      if (bookedSlots[dateKey]?.[t]) booked++;
-      else if (blockedSlots[dateKey]?.[t]) blocked++;
-      else open++;
+function updateStats(){
+  let open=0,blocked=0,booked=0,closed=0;
+  const dim=new Date(viewYear,viewMonth+1,0).getDate();
+  for(let d=1;d<=dim;d++){
+    const dateKey=dk(viewYear,viewMonth,d);
+    if(closedDates.has(dateKey)){closed++;continue;}
+    TIMES.forEach(t=>{
+      if(bookedSlots[dateKey]?.[t]) booked++;
+      else {
+        const s=getSlotState(dateKey,t);
+        if(s.hit||s.pitch) blocked++;
+        else open++;
+      }
     });
   }
-  document.getElementById('statOpen').textContent = open;
-  document.getElementById('statBlocked').textContent = blocked;
-  document.getElementById('statBooked').textContent = booked;
-  document.getElementById('statClosed').textContent = closed;
+  document.getElementById('statOpen').textContent=open;
+  document.getElementById('statBlocked').textContent=blocked;
+  document.getElementById('statBooked').textContent=booked;
+  document.getElementById('statClosed').textContent=closed;
 }
 
 document.getElementById('pwdInput').focus();
