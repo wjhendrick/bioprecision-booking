@@ -481,6 +481,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Serve admin dashboard
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 BioPrecision server running on port ${PORT}`);
   console.log(`   Square location: ${process.env.SQUARE_LOCATION_ID}`);
