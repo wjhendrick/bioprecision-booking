@@ -644,13 +644,38 @@ function buildSlotsUI(){
   const grid=document.getElementById('slotGrid');grid.innerHTML='';
   document.getElementById('slotsLabel').textContent=`Available ${dur==='assessment'?'90-min':'60-min'} slots — ${sideLabel}:`;
   const ds=dates[selDateIdx]?dateStr(dates[selDateIdx]):'';
+
+  // Convert time string to minutes since midnight for overlap checking
+  function timeToMins(t){
+    const [time,ampm]=t.split(' ');
+    let [h,m]=time.split(':').map(Number);
+    if(ampm==='PM'&&h!==12) h+=12;
+    if(ampm==='AM'&&h===12) h=0;
+    return h*60+m;
+  }
+
+  const slotDurMins = dur==='assessment'?90:60;
+
   times.forEach(t=>{
-    const slotState=blockedSlots[ds]&&blockedSlots[ds][t];
-    // Check if this side is blocked
+    const slotStart=timeToMins(t);
+    const slotEnd=slotStart+slotDurMins;
+
+    // Check if ANY blocked slot on this date overlaps with this slot's time window
     let isBlocked=false;
-    if(slotState){
-      if(selSide==='hitting'||selSide==='both') isBlocked=isBlocked||slotState.hit;
-      if(selSide==='pitching'||selSide==='both') isBlocked=isBlocked||slotState.pitch;
+    if(blockedSlots[ds]){
+      Object.keys(blockedSlots[ds]).forEach(blockedTime=>{
+        const bState=blockedSlots[ds][blockedTime];
+        if(!bState) return;
+        const bStart=timeToMins(blockedTime);
+        const bEnd=bStart+60; // admin blocks in 60-min increments
+
+        // Overlap check: slot overlaps with blocked period
+        const overlaps = slotStart < bEnd && slotEnd > bStart;
+        if(overlaps){
+          if((selSide==='hitting'||selSide==='both')&&bState.hit) isBlocked=true;
+          if((selSide==='pitching'||selSide==='both')&&bState.pitch) isBlocked=true;
+        }
+      });
     }
     const btn=document.createElement('button');
     btn.className='slot-btn'+(isBlocked?' taken':'');
