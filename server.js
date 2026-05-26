@@ -1,460 +1,999 @@
-/**
- * BioPrecision Booking System — Backend Server
- * ─────────────────────────────────────────────
- * Handles:
- *   - Square payment processing
- *   - Monday.com New Event Request auto-submission
- *   - BioPrecision Excel roster update + email
- *   - Booking confirmation emails to client and owner
- *
- * SETUP:
- *   1. npm install express square dotenv nodemailer cors axios xlsx
- *   2. Create a .env file (see .env.example below)
- *   3. node server.js
- *
- * ⚠️  IMPORTANT: Regenerate your Square Access Token after setup.
- *     Never commit .env to GitHub.
- */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BioPrecision — Schedule a Lab Session</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <!-- Square Web Payments SDK (Production) -->
+  <script src="https://web.squarecdn.com/v1/square.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F9FAFB; color: #111827; }
+    .page-wrap { min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem; }
+    .bp-wrap { width: 100%; max-width: 720px; background: #fff; border-radius: 12px; padding: 2rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 
-require('dotenv').config();
-const express    = require('express');
-const cors       = require('cors');
-const { SquareClient, SquareEnvironment } = require('square');
-const { Resend } = require('resend');
-const resend = new Resend(process.env.RESEND_API_KEY);
-const axios      = require('axios');
-const XLSX       = require('xlsx');
-const crypto     = require('crypto');
-const path       = require('path');
-const fs         = require('fs');
+    .bp-header { display:flex; align-items:center; gap:12px; margin-bottom:2rem; padding-bottom:1.5rem; border-bottom:1px solid #E5E7EB; }
+    .bp-logo { width:44px; height:44px; background:#011244; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .bp-logo i { font-size:22px; color:#fff; }
+    .bp-header-text h1 { font-size:18px; font-weight:600; color:#111827; }
+    .bp-header-text p { font-size:13px; color:#6B7280; margin-top:2px; }
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+    .bp-steps { display:flex; margin-bottom:2rem; }
+    .bp-step { flex:1; display:flex; align-items:center; gap:6px; }
+    .bp-step-num { width:28px; height:28px; border-radius:50%; border:1px solid #D1D5DB; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; color:#6B7280; background:#fff; flex-shrink:0; transition:all 0.2s; }
+    .bp-step-label { font-size:11px; color:#9CA3AF; white-space:nowrap; }
+    .bp-step.active .bp-step-num { background:#011244; color:#fff; border-color:#011244; }
+    .bp-step.active .bp-step-label { color:#111827; font-weight:500; }
+    .bp-step.done .bp-step-num { background:#D1FAE5; color:#065F46; border-color:#6EE7B7; }
+    .bp-step-line { flex:1; height:1px; background:#E5E7EB; margin:0 4px; }
+    .bp-step.done + .bp-step-line { background:#011244; }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SQUARE CLIENT
-// ─────────────────────────────────────────────────────────────────────────────
-const squareClient = new SquareClient({
-  environment: SquareEnvironment.Production,
-  token: process.env.SQUARE_ACCESS_TOKEN,
-});
+    .section { display:none; }
+    .section.active { display:block; }
+    .section-title { font-size:16px; font-weight:600; color:#111827; margin-bottom:4px; }
+    .section-sub { font-size:13px; color:#6B7280; margin-bottom:1.5rem; }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EMAIL TRANSPORTER (Nodemailer)
-// ─────────────────────────────────────────────────────────────────────────────
-// Email sending via Resend
-async function sendEmail({ from, to, subject, html }) {
-  const { data, error } = await resend.emails.send({ from, to, subject, html });
-  if (error) throw new Error(error.message);
-  return data;
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .form-group { display:flex; flex-direction:column; gap:5px; }
+    .form-group.full { grid-column:1/-1; }
+    .form-group label { font-size:12px; font-weight:500; color:#6B7280; }
+    .form-group input,.form-group select { padding:8px 12px; border:1px solid #D1D5DB; border-radius:6px; font-size:14px; font-family:inherit; color:#111827; background:#fff; width:100%; }
+    .form-group input:focus,.form-group select:focus { outline:none; border-color:#011244; }
+    .req { color:#EF4444; }
+    .divider-label { font-size:11px; font-weight:600; color:#9CA3AF; text-transform:uppercase; letter-spacing:0.06em; grid-column:1/-1; margin-top:8px; padding-top:8px; border-top:1px solid #F3F4F6; }
+
+    .client-type-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:1.5rem; }
+    .ctype-card { border:1px solid #E5E7EB; border-radius:10px; padding:1.25rem; cursor:pointer; text-align:center; transition:all 0.15s; position:relative; }
+    .ctype-card:hover { background:#F9FAFB; }
+    .ctype-card.selected { border:2px solid #011244; background:#F0F4FF; }
+    .ctype-icon { width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 10px; }
+    .ctype-icon.indiv { background:#DBEAFE; } .ctype-icon.indiv i { color:#1D4ED8; font-size:22px; }
+    .ctype-icon.team { background:#FEF3C7; } .ctype-icon.team i { color:#92400E; font-size:22px; }
+    .ctype-card h3 { font-size:14px; font-weight:600; color:#111827; margin-bottom:4px; }
+    .ctype-card p { font-size:12px; color:#6B7280; line-height:1.5; }
+    .ctype-check { display:none; position:absolute; top:10px; right:10px; width:20px; height:20px; border-radius:50%; background:#011244; align-items:center; justify-content:center; }
+    .ctype-check i { color:#fff; font-size:12px; }
+    .ctype-card.selected .ctype-check { display:flex; }
+
+    .service-section { display:none; } .service-section.active { display:block; }
+    .subsection-label { font-size:13px; font-weight:500; color:#6B7280; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #F3F4F6; }
+    .stype-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:1.5rem; }
+    .stype-grid.two-col { grid-template-columns:1fr 1fr; }
+    .stype-card { border:1px solid #E5E7EB; border-radius:10px; padding:1rem; cursor:pointer; text-align:center; transition:all 0.15s; }
+    .stype-card:hover { background:#F9FAFB; }
+    .stype-card.selected { border:2px solid #011244; background:#F0F4FF; }
+    .stype-icon { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 8px; }
+    .stype-icon.hit { background:#DBEAFE; } .stype-icon.hit i { color:#1D4ED8; font-size:18px; }
+    .stype-icon.pitch { background:#D1FAE5; } .stype-icon.pitch i { color:#065F46; font-size:18px; }
+    .stype-icon.both { background:#FEF3C7; } .stype-icon.both i { color:#92400E; font-size:18px; }
+    .stype-card h3 { font-size:13px; font-weight:600; color:#111827; margin-bottom:2px; }
+    .stype-card p { font-size:11px; color:#6B7280; line-height:1.4; }
+    .stype-check { display:none; width:16px; height:16px; border-radius:50%; background:#011244; margin:6px auto 0; align-items:center; justify-content:center; }
+    .stype-check i { color:#fff; font-size:10px; }
+    .stype-card.selected .stype-check { display:flex; }
+
+    .session-panel { display:none; } .session-panel.active { display:block; }
+    .panel-label { font-size:13px; font-weight:500; color:#6B7280; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+    .panel-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .dot-hit { background:#1D4ED8; } .dot-pitch { background:#065F46; } .dot-team { background:#92400E; }
+    .session-opt { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:12px 14px; border:1px solid #E5E7EB; border-radius:8px; cursor:pointer; transition:all 0.15s; margin-bottom:8px; }
+    .session-opt:hover { background:#F9FAFB; }
+    .session-opt.selected { border-color:#011244; background:#F0F4FF; }
+    .session-opt-left { display:flex; align-items:flex-start; gap:10px; flex:1; }
+    .s-radio { width:16px; height:16px; border-radius:50%; border:2px solid #D1D5DB; flex-shrink:0; margin-top:2px; display:flex; align-items:center; justify-content:center; }
+    .session-opt.selected .s-radio { border-color:#011244; background:#011244; }
+    .s-radio-dot { width:6px; height:6px; border-radius:50%; background:#fff; display:none; }
+    .session-opt.selected .s-radio-dot { display:block; }
+    .session-opt-name { font-size:13px; font-weight:500; color:#111827; margin-bottom:2px; }
+    .session-opt-detail { font-size:12px; color:#6B7280; line-height:1.5; }
+    .session-opt-price { font-size:14px; font-weight:600; color:#011244; white-space:nowrap; flex-shrink:0; padding-top:2px; }
+    .two-way-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .two-way-col-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px; display:flex; align-items:center; gap:5px; }
+    .two-way-col-label.hit { color:#1D4ED8; } .two-way-col-label.pitch { color:#065F46; }
+    .selection-trail { display:flex; align-items:center; gap:5px; margin-bottom:1rem; flex-wrap:wrap; }
+    .trail-chip { display:flex; align-items:center; gap:4px; padding:2px 10px; border-radius:20px; font-size:12px; font-weight:500; }
+    .trail-chip.indiv { background:#DBEAFE; color:#1D4ED8; }
+    .trail-chip.team { background:#FEF3C7; color:#92400E; }
+    .trail-chip.hit { background:#DBEAFE; color:#1D4ED8; }
+    .trail-chip.pitch { background:#D1FAE5; color:#065F46; }
+    .trail-chip.both { background:#FEF3C7; color:#92400E; }
+    .trail-arrow { font-size:12px; color:#9CA3AF; }
+    .trail-chip-edit { font-size:11px; color:#9CA3AF; cursor:pointer; margin-left:3px; text-decoration:underline; }
+
+    .skip-banner { border-radius:10px; padding:1.5rem; text-align:center; margin-bottom:1rem; }
+    .skip-banner.team { background:#FFF8EE; border:1px solid #F5C97A; }
+    .skip-banner.remote { background:#EFF6FF; border:1px solid #BFDBFE; }
+    .skip-banner i { font-size:32px; margin-bottom:10px; display:block; }
+    .skip-banner.team i { color:#92400E; } .skip-banner.remote i { color:#1D4ED8; }
+    .skip-banner h3 { font-size:14px; font-weight:600; margin-bottom:4px; }
+    .skip-banner p { font-size:13px; color:#6B7280; line-height:1.6; max-width:400px; margin:0 auto; }
+
+    .sched-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+    .sched-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 12px; border-radius:20px; font-size:12px; font-weight:500; }
+    .sched-badge.hit { background:#DBEAFE; color:#1D4ED8; }
+    .sched-badge.pitch { background:#D1FAE5; color:#065F46; }
+    .sched-badge.both { background:#FEF3C7; color:#92400E; }
+    .admin-toggle-btn { font-size:12px; color:#6B7280; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:6px; padding:5px 12px; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:5px; }
+    .admin-panel { border:1px solid #F5C97A; background:#FFFDF5; border-radius:10px; padding:1rem 1.25rem; margin-bottom:1rem; }
+    .admin-panel-title { font-size:13px; font-weight:500; color:#92400E; margin-bottom:12px; display:flex; align-items:center; gap:5px; }
+    .admin-note { font-size:11px; color:#9CA3AF; margin-top:8px; }
+    .admin-days-row { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-bottom:12px; }
+    .admin-day { text-align:center; }
+    .admin-day-label { font-size:10px; color:#6B7280; margin-bottom:3px; }
+    .admin-day-toggle { width:100%; padding:5px 2px; border:1px solid #E5E7EB; border-radius:5px; font-size:11px; font-weight:500; cursor:pointer; font-family:inherit; background:#D1FAE5; color:#065F46; }
+    .admin-day-toggle.closed { background:#FEE2E2; color:#991B1B; }
+    .admin-slot-section { margin-top:10px; }
+    .admin-slot-section-title { font-size:12px; font-weight:500; color:#92400E; margin-bottom:8px; }
+    .admin-slot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:6px; margin-bottom:10px; }
+    .admin-slot-btn { padding:6px 8px; border:1px solid #E5E7EB; border-radius:6px; font-size:11px; font-weight:500; text-align:center; cursor:pointer; font-family:inherit; background:#fff; color:#111827; transition:all 0.12s; }
+    .admin-slot-btn:hover:not(.booked) { background:#F9FAFB; }
+    .admin-slot-btn.blocked { background:#FEE2E2; color:#991B1B; border-color:#FECACA; }
+    .admin-slot-btn.booked { background:#EDE9FE; color:#5B21B6; border-color:#DDD6FE; cursor:not-allowed; }
+    .admin-slot-sub { font-size:9px; margin-top:1px; opacity:0.7; }
+    .bulk-actions { border:1px solid #E5E7EB; border-radius:8px; padding:1rem; margin-top:12px; background:#F9FAFB; }
+    .bulk-title { font-size:12px; font-weight:500; color:#374151; margin-bottom:8px; }
+    .bulk-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+    .bulk-select { padding:6px 10px; border:1px solid #D1D5DB; border-radius:6px; font-family:inherit; font-size:12px; background:#fff; color:#111827; width:100%; }
+    .bulk-btn-row { display:flex; gap:7px; }
+    .bulk-btn { padding:6px 14px; border:none; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; font-family:inherit; }
+    .bulk-btn.block { background:#FEE2E2; color:#991B1B; }
+    .bulk-btn.block:hover { background:#FECACA; }
+    .bulk-btn.unblock { background:#D1FAE5; color:#065F46; }
+    .bulk-btn.unblock:hover { background:#A7F3D0; }
+    .day-tabs { display:flex; gap:4px; margin-bottom:10px; flex-wrap:wrap; }
+    .day-tab { padding:4px 10px; border:1px solid #E5E7EB; border-radius:20px; font-size:11px; font-weight:500; cursor:pointer; font-family:inherit; background:#fff; color:#6B7280; }
+    .day-tab:hover { background:#F9FAFB; }
+    .day-tab.active { background:#011244; color:#fff; border-color:#011244; }
+    .day-tab.closed-tab { background:#FEE2E2; color:#991B1B; border-color:#FECACA; cursor:not-allowed; }
+
+    .date-scroll { display:flex; gap:6px; margin-bottom:1rem; overflow-x:auto; padding-bottom:4px; }
+    .date-btn { flex-shrink:0; width:54px; padding:7px 4px; border:1px solid #E5E7EB; border-radius:8px; cursor:pointer; font-size:11px; text-align:center; transition:all 0.15s; background:#fff; }
+    .date-btn:hover:not(.closed-day) { background:#F9FAFB; }
+    .date-btn.selected { border-color:#011244; background:#011244; color:#fff; }
+    .date-btn.closed-day { opacity:0.3; cursor:not-allowed; }
+    .date-btn .d-name { font-size:9px; color:#9CA3AF; }
+    .date-btn .d-num { font-size:15px; font-weight:700; }
+    .date-btn .d-mon { font-size:9px; color:#9CA3AF; }
+    .date-btn.selected .d-name,.date-btn.selected .d-mon { color:rgba(255,255,255,0.6); }
+
+    .slots-label { font-size:13px; font-weight:500; color:#6B7280; margin-bottom:6px; }
+    .slot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(105px,1fr)); gap:7px; }
+    .slot-btn { padding:8px 6px; border:1px solid #E5E7EB; border-radius:7px; font-size:12px; text-align:center; cursor:pointer; font-family:inherit; background:#fff; color:#111827; transition:all 0.15s; }
+    .slot-btn:hover:not(.taken) { background:#F9FAFB; }
+    .slot-btn.selected { border-color:#011244; background:#011244; color:#fff; }
+    .slot-btn.taken { opacity:0.35; cursor:not-allowed; text-decoration:line-through; }
+    .slot-sub { font-size:10px; color:#9CA3AF; margin-top:1px; }
+    .slot-btn.selected .slot-sub { color:rgba(255,255,255,0.6); }
+    .no-date-msg { font-size:13px; color:#9CA3AF; padding:1rem 0; }
+
+    .confirm-sections { display:flex; flex-direction:column; gap:1.5rem; }
+    .confirm-block-title { font-size:14px; font-weight:600; color:#111827; margin-bottom:8px; display:flex; align-items:center; gap:7px; }
+    .confirm-block-title i { color:#011244; font-size:17px; }
+
+    .summary-card { border:1px solid #E5E7EB; border-radius:10px; overflow:hidden; }
+    .summary-row { display:flex; justify-content:space-between; align-items:center; padding:9px 16px; border-bottom:1px solid #F3F4F6; font-size:13px; }
+    .summary-row:last-child { border-bottom:none; }
+    .summary-label { color:#6B7280; }
+    .summary-val { color:#111827; font-weight:500; text-align:right; max-width:60%; }
+    .summary-total { background:#F9FAFB; }
+    .summary-total .summary-label { color:#111827; font-weight:600; font-size:14px; }
+    .summary-total .summary-val { font-size:18px; color:#011244; font-weight:700; }
+
+    .waiver-header-bar { background:#011244; color:#fff; padding:10px 14px; border-radius:8px 8px 0 0; }
+    .waiver-header-bar h4 { font-size:12px; font-weight:600; }
+    .waiver-header-bar p { font-size:11px; color:rgba(255,255,255,0.7); margin-top:2px; }
+    .waiver-box { border:1px solid #E5E7EB; border-top:none; border-radius:0 0 8px 8px; padding:1rem; background:#F9FAFB; max-height:220px; overflow-y:auto; }
+    .waiver-box h5 { font-size:12px; font-weight:600; color:#111827; margin:10px 0 4px; }
+    .waiver-box h5:first-child { margin-top:0; }
+    .waiver-box p { font-size:12px; color:#6B7280; line-height:1.7; margin-bottom:4px; }
+    .waiver-box ul { font-size:12px; color:#6B7280; line-height:1.7; padding-left:1.2rem; margin-bottom:4px; }
+    .waiver-box .strong-note { font-size:12px; font-weight:600; color:#111827; padding:8px 10px; background:#fff; border-radius:6px; border:1px solid #E5E7EB; margin-top:8px; line-height:1.5; }
+
+    .consent-fields { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+    .consent-check { display:flex; align-items:flex-start; gap:8px; padding:8px 12px; border:1px solid #E5E7EB; border-radius:7px; background:#fff; }
+    .consent-check input { margin-top:2px; flex-shrink:0; accent-color:#011244; }
+    .consent-check label { font-size:13px; color:#111827; line-height:1.5; cursor:pointer; }
+    .consent-check.media-optout { border-color:#FCD34D; background:#FFFBEB; }
+    .consent-check.media-optout label { color:#92400E; font-size:12px; }
+
+    .sig-section { border:1px solid #E5E7EB; border-radius:10px; overflow:hidden; }
+    .sig-section-header { background:#F9FAFB; padding:8px 14px; border-bottom:1px solid #E5E7EB; font-size:13px; font-weight:500; }
+    .sig-section-body { padding:1rem; display:flex; flex-direction:column; gap:10px; }
+    .sig-field { display:flex; flex-direction:column; gap:4px; }
+    .sig-field label { font-size:12px; font-weight:500; color:#6B7280; }
+    .sig-field input { padding:8px 12px; border:1px solid #D1D5DB; border-radius:6px; font-size:15px; font-family:'Palatino Linotype',Georgia,serif; font-style:italic; color:#111827; background:#fff; }
+    .sig-field input.normal { font-family:inherit; font-style:normal; font-size:14px; }
+    .sig-field input:focus { outline:none; border-color:#011244; }
+    .sig-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+    .minor-section { border:1px solid #FCD34D; border-radius:10px; overflow:hidden; margin-top:10px; }
+    .minor-header { background:#FFFBEB; padding:8px 14px; border-bottom:1px solid #FCD34D; display:flex; align-items:center; gap:6px; }
+    .minor-header i { color:#92400E; }
+    .minor-header span { font-size:13px; font-weight:500; color:#92400E; }
+    .minor-toggle { display:flex; align-items:center; gap:8px; padding:10px 14px; cursor:pointer; }
+    .minor-toggle input { accent-color:#011244; }
+    .minor-toggle label { font-size:13px; color:#111827; cursor:pointer; }
+    .minor-fields { padding:0 14px 14px; display:flex; flex-direction:column; gap:10px; }
+
+    .payment-block { border:1px solid #E5E7EB; border-radius:10px; overflow:hidden; }
+    .payment-block-header { background:#011244; color:#fff; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; }
+    .payment-block-header-left { display:flex; align-items:center; gap:7px; font-size:14px; font-weight:500; }
+    .sq-card-icons { display:flex; gap:4px; }
+    .sq-card-icon { width:30px; height:18px; border-radius:3px; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:700; color:#fff; }
+    .payment-block-body { padding:1.25rem; }
+    .amount-display { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#F9FAFB; border-radius:7px; margin-bottom:1rem; border:1px solid #E5E7EB; }
+    .amount-label { font-size:13px; color:#6B7280; }
+    .amount-value { font-size:22px; font-weight:700; color:#011244; }
+    #card-container { min-height:90px; margin-bottom:10px; }
+    #payment-status { font-size:13px; margin-top:6px; display:none; }
+    .sq-secure-note { display:flex; align-items:center; gap:5px; font-size:11px; color:#9CA3AF; margin-top:8px; }
+    .sq-powered { font-size:10px; color:#9CA3AF; display:flex; align-items:center; gap:3px; margin-top:4px; }
+    .sq-powered span { font-weight:600; color:#374151; }
+
+    .pay-btn { width:100%; padding:13px; border:none; border-radius:8px; background:#011244; color:#fff; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; margin-top:1rem; display:flex; align-items:center; justify-content:center; gap:7px; transition:opacity 0.15s; }
+    .pay-btn:hover:not(:disabled) { opacity:0.88; }
+    .pay-btn:disabled { opacity:0.4; cursor:not-allowed; }
+    .payment-required-note { display:flex; align-items:flex-start; gap:7px; background:#FFFBEB; border:1px solid #FCD34D; border-radius:7px; padding:10px 12px; font-size:12px; color:#92400E; margin-top:10px; line-height:1.5; }
+
+    .btn-row { display:flex; gap:10px; justify-content:flex-end; margin-top:1.5rem; }
+    .btn-back { padding:9px 20px; border:1px solid #D1D5DB; border-radius:7px; background:transparent; color:#6B7280; font-size:14px; cursor:pointer; font-family:inherit; }
+    .btn-back:hover { background:#F9FAFB; }
+    .btn-next { padding:9px 24px; border:none; border-radius:7px; background:#011244; color:#fff; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; transition:opacity 0.15s; }
+    .btn-next:hover { opacity:0.87; }
+    .btn-next:disabled { opacity:0.4; cursor:not-allowed; }
+
+    .success-wrap { text-align:center; padding:2rem 1rem; }
+    .success-icon { width:68px; height:68px; border-radius:50%; background:#D1FAE5; display:flex; align-items:center; justify-content:center; margin:0 auto 1.25rem; }
+    .success-icon i { font-size:34px; color:#065F46; }
+    .success-wrap h2 { font-size:20px; font-weight:700; margin-bottom:6px; }
+    .success-wrap p { font-size:14px; color:#6B7280; max-width:420px; margin:0 auto; line-height:1.6; }
+    .next-steps { display:flex; flex-direction:column; gap:7px; margin-top:1.25rem; text-align:left; }
+    .next-step { display:flex; align-items:center; gap:10px; padding:9px 13px; border:1px solid #E5E7EB; border-radius:7px; font-size:13px; color:#6B7280; }
+    .next-step i { font-size:17px; color:#011244; flex-shrink:0; }
+    .paid-badge { display:inline-flex; align-items:center; gap:5px; background:#D1FAE5; color:#065F46; border-radius:20px; padding:3px 12px; font-size:13px; font-weight:500; margin-bottom:10px; }
+
+    @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+<div class="bp-wrap">
+
+  <div class="bp-header">
+    <div class="bp-logo"><i class="ti ti-dna"></i></div>
+    <div class="bp-header-text">
+      <h1>Schedule a Lab Session</h1>
+      <p>BioPrecision — WVU Baseball Biomechanics & Performance Center</p>
+    </div>
+  </div>
+
+  <div class="bp-steps" id="stepsBar">
+    <div class="bp-step active" id="stepEl0"><div class="bp-step-num">1</div><div class="bp-step-label">Personal info</div></div>
+    <div class="bp-step-line"></div>
+    <div class="bp-step" id="stepEl1"><div class="bp-step-num">2</div><div class="bp-step-label">Session type</div></div>
+    <div class="bp-step-line"></div>
+    <div class="bp-step" id="stepEl2"><div class="bp-step-num">3</div><div class="bp-step-label">Schedule</div></div>
+    <div class="bp-step-line"></div>
+    <div class="bp-step" id="stepEl3"><div class="bp-step-num">4</div><div class="bp-step-label">Confirm & Pay</div></div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="section active" id="sec0">
+    <p class="section-title">Your information</p>
+    <p class="section-sub">Please fill out your details before booking a session.</p>
+    <div class="form-grid">
+      <div class="form-group"><label>First name <span class="req">*</span></label><input type="text" id="fname" required placeholder="First name"></div>
+      <div class="form-group"><label>Last name <span class="req">*</span></label><input type="text" id="lname" required placeholder="Last name"></div>
+      <div class="form-group"><label>Email <span class="req">*</span></label><input type="email" id="email" required placeholder="you@example.com"></div>
+      <div class="form-group"><label>Phone <span class="req">*</span></label><input type="tel" id="phone" required placeholder="(304) 000-0000"></div>
+      <div class="form-group"><label>Date of birth <span class="req">*</span></label><input type="text" id="dob" required placeholder="MM/DD/YYYY"></div>
+      <div class="form-group"><label>Age <span class="req">*</span></label><input type="number" id="age" required placeholder="Age" min="8" max="60"></div>
+      <div class="divider-label">Physical</div>
+      <div class="form-group"><label>Height <span class="req">*</span></label>
+        <div style="display:flex;gap:6px">
+          <select id="heightFt" style="flex:1"><option value="">ft</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+          <select id="heightIn" style="flex:1"><option value="">in</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Weight (lbs) <span class="req">*</span></label><input type="number" id="weight" required placeholder="lbs" min="60" max="400"></div>
+      <div class="divider-label">Baseball background</div>
+      <div class="form-group"><label>Current team / school <span class="req">*</span></label><input type="text" id="teamSchool" required placeholder="Team or school name"></div>
+      <div class="form-group"><label>Level of play <span class="req">*</span></label>
+        <select id="level" required><option value="">Select level...</option><option>High school</option><option>College</option><option>Amateur / independent</option><option>Professional</option></select>
+      </div>
+      <div class="form-group"><label>Position(s) <span class="req">*</span></label>
+        <select id="position" required><option value="">Select position...</option><option>Pitcher</option><option>Catcher</option><option>Infielder</option><option>Outfielder</option><option>Two-way</option></select>
+      </div>
+      <div class="form-group"><label>Throws <span class="req">*</span></label><select id="throws" required><option value="">Select...</option><option>Right</option><option>Left</option><option>Switch</option></select></div>
+      <div class="form-group"><label>Bats <span class="req">*</span></label><select id="bats" required><option value="">Select...</option><option>Right</option><option>Left</option><option>Switch</option></select></div>
+      <div class="divider-label">Referral</div>
+      <div class="form-group full"><label>Referred by <span class="req">*</span></label>
+        <select id="referral" required>
+          <option value="">Select referral source...</option>
+          <optgroup label="Partners"><option>Jason Slack</option><option>Chase Rowe (BattleGround)</option><option>Keith Regn (Colossal)</option><option>Dan Overcash (Next Level Prospects)</option></optgroup>
+          <optgroup label="Other"><option>Social media</option><option>Google / web search</option><option>Word of mouth</option><option>BioPrecision website</option><option>Other</option></optgroup>
+        </select>
+      </div>
+      <div class="divider-label">Session goals</div>
+      <div class="form-group full"><label>Goals / notes for this session <span class="req">*</span></label><input type="text" id="goals" required placeholder="What are you hoping to work on or achieve?"></div>
+    </div>
+    <div class="btn-row"><button class="btn-next" onclick="goStep(1)">Continue <i class="ti ti-arrow-right"></i></button></div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="section" id="sec1">
+    <p class="section-title">What would you like to sign up for?</p>
+    <p class="section-sub">Start by selecting the type of service, then we'll narrow it down.</p>
+    <div class="client-type-grid">
+      <div class="ctype-card" id="ct-individual" onclick="selectClientType('individual')"><div class="ctype-check"><i class="ti ti-check"></i></div><div class="ctype-icon indiv"><i class="ti ti-user"></i></div><h3>Individual</h3><p>One-on-one sessions — evaluations, memberships, tune-ups & Recruitment Readiness Package</p></div>
+      <div class="ctype-card" id="ct-team" onclick="selectClientType('team')"><div class="ctype-check"><i class="ti ti-check"></i></div><div class="ctype-icon team"><i class="ti ti-users"></i></div><h3>Team</h3><p>Group sessions for 6+ athletes — team evaluations and pro-style prospect workouts</p></div>
+    </div>
+    <div class="service-section" id="tier2-individual">
+      <div id="trailIndiv" class="selection-trail"></div>
+      <p class="subsection-label">Which service are you signing up for?</p>
+      <div class="stype-grid">
+        <div class="stype-card" id="si-hitting" onclick="selectServiceType('hitting')"><div class="stype-icon hit"><i class="ti ti-ball-baseball"></i></div><h3>Hitting</h3><p>Swing analysis, motion capture & development</p><div class="stype-check"><i class="ti ti-check"></i></div></div>
+        <div class="stype-card" id="si-pitching" onclick="selectServiceType('pitching')"><div class="stype-icon pitch"><i class="ti ti-wind"></i></div><h3>Pitching</h3><p>Kinematics, joint stress & pitch design</p><div class="stype-check"><i class="ti ti-check"></i></div></div>
+        <div class="stype-card" id="si-both" onclick="selectServiceType('both')"><div class="stype-icon both"><i class="ti ti-arrows-exchange"></i></div><h3>Both (Two-Way)</h3><p>Full hitting & pitching in one session</p><div class="stype-check"><i class="ti ti-check"></i></div></div>
+      </div>
+    </div>
+    <div class="service-section" id="tier2-team">
+      <div id="trailTeam" class="selection-trail"></div>
+      <p class="subsection-label">Which team service are you booking?</p>
+      <div class="stype-grid">
+        <div class="stype-card" id="st-hitting" onclick="selectServiceType('hitting')"><div class="stype-icon hit"><i class="ti ti-ball-baseball"></i></div><h3>Hitting</h3><p>Team hitting assessment + optional field workout</p><div class="stype-check"><i class="ti ti-check"></i></div></div>
+        <div class="stype-card" id="st-pitching" onclick="selectServiceType('pitching')"><div class="stype-icon pitch"><i class="ti ti-wind"></i></div><h3>Pitching</h3><p>Team pitching assessment + optional field workout</p><div class="stype-check"><i class="ti ti-check"></i></div></div>
+        <div class="stype-card" id="st-both" onclick="selectServiceType('both')"><div class="stype-icon both"><i class="ti ti-arrows-exchange"></i></div><h3>Both (Two-Way)</h3><p>Hitting & pitching assessments + optional field workout</p><div class="stype-check"><i class="ti ti-check"></i></div></div>
+      </div>
+    </div>
+    <div class="session-panel" id="panel-indiv-hitting"><div id="trailIndivHit" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-hit"></span> Select your hitting session:</p><div id="opts-indiv-hitting"></div></div>
+    <div class="session-panel" id="panel-indiv-pitching"><div id="trailIndivPitch" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-pitch"></span> Select your pitching session:</p><div id="opts-indiv-pitching"></div></div>
+    <div class="session-panel" id="panel-indiv-both"><div id="trailIndivBoth" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-hit"></span> Select one session from each side:</p><div class="two-way-grid"><div><div class="two-way-col-label hit"><i class="ti ti-ball-baseball" style="font-size:12px"></i> Hitting session</div><div id="opts-both-hit"></div></div><div><div class="two-way-col-label pitch"><i class="ti ti-wind" style="font-size:12px"></i> Pitching session</div><div id="opts-both-pitch"></div></div></div></div>
+    <div class="session-panel" id="panel-team-hitting"><div id="trailTeamHit" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-team"></span> Select your team hitting services (you may select both):</p><div id="opts-team-hitting"></div></div>
+    <div class="session-panel" id="panel-team-pitching"><div id="trailTeamPitch" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-team"></span> Select your team pitching services (you may select both):</p><div id="opts-team-pitching"></div></div>
+    <div class="session-panel" id="panel-team-both"><div id="trailTeamBoth" class="selection-trail"></div><p class="panel-label"><span class="panel-dot dot-team"></span> Select your team two-way services (you may select both):</p><div id="opts-team-both"></div></div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(0)"><i class="ti ti-arrow-left"></i> Back</button>
+      <button class="btn-next" id="btnStep2" onclick="goStep(2)" disabled>Continue <i class="ti ti-arrow-right"></i></button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="section" id="sec2">
+    <p class="section-title">Schedule your session</p>
+    <p class="section-sub" id="schedSub">Select an available date and time below.</p>
+    <div id="teamBypass" style="display:none"><div class="skip-banner team"><i class="ti ti-users"></i><h3>Team booking request received</h3><p>Team sessions are scheduled manually. Once you submit, we'll reach out within 24 hours to confirm your date, time, and athlete count.</p></div></div>
+    <div id="remoteBypass" style="display:none"><div class="skip-banner remote"><i class="ti ti-video"></i><h3>Remote session — no lab visit needed</h3><p>Your remote session is conducted entirely online. After submitting, we'll send a calendar invite and video call link.</p></div></div>
+    <div id="liveSchedule" style="display:none">
+      <div class="sched-header">
+        <div id="schedBadge"></div>
+        <div style="display:flex;gap:8px">
+          <button class="admin-toggle-btn" onclick="toggleAdmin()"><i class="ti ti-settings"></i> Admin: manage availability</button>
+          <button class="admin-toggle-btn" onclick="toggleTestMode()" id="testModeBtn"><i class="ti ti-flask"></i> Test mode</button>
+        </div>
+      </div>
+      <div class="admin-panel" id="adminPanel" style="display:none">
+        <div class="admin-panel-title"><i class="ti ti-lock"></i> Admin — Availability Controls</div>
+        <div class="admin-days-row" id="adminDays"></div>
+        <div class="admin-slot-section">
+          <div class="admin-slot-section-title"><i class="ti ti-clock"></i> Block / unblock specific time slots:</div>
+          <div class="day-tabs" id="adminDayTabs"></div>
+          <div class="admin-slot-grid" id="adminSlotGrid"></div>
+        </div>
+        <div class="bulk-actions">
+          <div class="bulk-title"><i class="ti ti-adjustments"></i> Bulk block / unblock a time range:</div>
+          <div class="bulk-grid">
+            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;color:#6B7280;font-weight:500">From</label><select class="bulk-select" id="bulkFrom"><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option><option>6:00 PM</option><option>7:00 PM</option><option>8:00 PM</option></select></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;color:#6B7280;font-weight:500">To</label><select class="bulk-select" id="bulkTo"><option>10:00 AM</option><option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option><option>6:00 PM</option><option>7:00 PM</option><option>8:00 PM</option><option>9:00 PM</option></select></div>
+          </div>
+          <div class="bulk-btn-row">
+            <button class="bulk-btn block" onclick="bulkBlockSlots('block')"><i class="ti ti-ban"></i> Block range</button>
+            <button class="bulk-btn unblock" onclick="bulkBlockSlots('unblock')"><i class="ti ti-circle-check"></i> Unblock range</button>
+          </div>
+        </div>
+        <p class="admin-note">Click any slot to toggle it. Red = blocked for clients. Purple = already booked by a client.</p>
+      </div>
+      <p style="font-size:13px;font-weight:500;color:#6B7280;margin-bottom:6px">Select a date:</p>
+      <div class="date-scroll" id="dateRow"></div>
+      <div id="slotSection" style="display:none"><p class="slots-label" id="slotsLabel">Available time slots:</p><div class="slot-grid" id="slotGrid"></div></div>
+      <div id="noDateMsg" class="no-date-msg">← Select a date to see available time slots.</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(1)"><i class="ti ti-arrow-left"></i> Back</button>
+      <button class="btn-next" id="btnStep3" onclick="goStep(3)" disabled>Continue <i class="ti ti-arrow-right"></i></button>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="section" id="sec3">
+    <p class="section-title">Confirm & Pay</p>
+    <p class="section-sub">Review your booking, complete the consent form, and pay in full to confirm your session.</p>
+    <div class="confirm-sections">
+      <div>
+        <div class="confirm-block-title"><i class="ti ti-clipboard-list"></i> Booking summary</div>
+        <div class="summary-card">
+          <div class="summary-row"><span class="summary-label">Athlete</span><span class="summary-val" id="sumName">—</span></div>
+          <div class="summary-row"><span class="summary-label">Email</span><span class="summary-val" id="sumEmail">—</span></div>
+          <div class="summary-row"><span class="summary-label">Phone</span><span class="summary-val" id="sumPhone">—</span></div>
+          <div class="summary-row"><span class="summary-label">Height / Weight</span><span class="summary-val" id="sumPhysical">—</span></div>
+          <div class="summary-row"><span class="summary-label">Level</span><span class="summary-val" id="sumLevel">—</span></div>
+          <div class="summary-row"><span class="summary-label">Referred by</span><span class="summary-val" id="sumReferral">—</span></div>
+          <div class="summary-row"><span class="summary-label">Service</span><span class="summary-val" id="sumServiceType">—</span></div>
+          <div class="summary-row"><span class="summary-label">Session(s)</span><span class="summary-val" id="sumSession">—</span></div>
+          <div class="summary-row" id="sumSideRow"><span class="summary-label">Lab side</span><span class="summary-val" id="sumSide">—</span></div>
+          <div class="summary-row" id="sumDateRow"><span class="summary-label">Date & time</span><span class="summary-val" id="sumDateTime">—</span></div>
+          <div class="summary-row summary-total"><span class="summary-label">Total due today</span><span class="summary-val" id="sumPrice">—</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="confirm-block-title"><i class="ti ti-shield-check"></i> Facility waiver, release of liability & data consent</div>
+        <div class="waiver-header-bar"><h4>BioPrecision Biomechanics Facility Waiver, Release of Liability, and Data Consent Form</h4><p>BioPrecision LLC at the WVU Baseball Biomechanics and Performance Center · 2040 Gyorko Dr, Morgantown, WV 26534 · Effective December 1, 2025 · Governed by West Virginia Law</p></div>
+        <div class="waiver-box">
+          <h5>1. Acknowledgment and Assumption of Risk</h5>
+          <p>I understand that participating in baseball training, biomechanical assessments, and related physical activities at BioPrecision LLC involves risks including muscle strains and sprains, impact injuries from equipment or drills, joint injuries, worsening of pre-existing conditions, and slips, trips, or falls. I voluntarily assume all risks associated with participation.</p>
+          <h5>2. Waiver and Release of Liability</h5>
+          <p>I hereby voluntarily release and discharge BioPrecision LLC and the WVU Baseball Biomechanics and Performance Center, its owners, staff, contractors, agents, affiliates, and successors from any and all liability, claims, demands, or causes of action arising from participation. This release applies to claims based on <strong>ordinary negligence</strong> but does <strong>not</strong> waive claims for <strong>gross negligence or intentional misconduct</strong>, per West Virginia law.</p>
+          <h5>3. Medical Authorization</h5>
+          <p>I affirm that I am in good physical condition and have no known medical conditions that would prevent safe participation. I authorize WVU Baseball Biomechanics and Performance Center to provide or seek emergency medical care on my behalf if needed. I assume responsibility for any related medical costs.</p>
+          <h5>4. Consent to Biomechanical Data and Video Collection & Use</h5>
+          <p>I grant BioPrecision LLC the perpetual, unrestricted, and royalty-free right to collect, store, analyze, and use my biomechanical data, motion capture data, video, and audio recordings for internal analysis, product development, research, commercial use, marketing, social media, and public presentations. I waive any right to inspect, approve, or be compensated for such use and understand this consent is irrevocable.</p>
+          <h5>5. Media Release</h5>
+          <p>I understand that photos or videos taken during sessions may be used publicly. If I do not want my identifiable media used for marketing or social media, I must check the opt-out box below.</p>
+          <h5>6. Severability</h5>
+          <p>If any portion of this agreement is found invalid or unenforceable, the remaining sections shall remain in full force and effect.</p>
+          <h5>7. Acknowledgment of Understanding</h5>
+          <div class="strong-note">I HAVE READ THIS ENTIRE AGREEMENT, UNDERSTAND ITS TERMS, AND SIGN IT FREELY AND VOLUNTARILY. I UNDERSTAND I AM WAIVING CERTAIN LEGAL RIGHTS BY SIGNING THIS DOCUMENT.</div>
+        </div>
+        <div class="consent-fields">
+          <div class="consent-check"><input type="checkbox" id="chkWaiver" onchange="checkPayReady()"><label for="chkWaiver">I have read and agree to the BioPrecision Facility Waiver and Release of Liability (Sections 1–2). <span class="req">*</span></label></div>
+          <div class="consent-check"><input type="checkbox" id="chkMedical" onchange="checkPayReady()"><label for="chkMedical">I affirm I am in good physical condition and authorize emergency medical care if needed (Section 3). <span class="req">*</span></label></div>
+          <div class="consent-check"><input type="checkbox" id="chkData" onchange="checkPayReady()"><label for="chkData">I consent to the collection and use of my biomechanical data, video, and media as described in Section 4. <span class="req">*</span></label></div>
+          <div class="consent-check media-optout"><input type="checkbox" id="chkMediaOptOut"><label for="chkMediaOptOut">☐ I do NOT consent to the use of my identifiable media (photos/videos) for public promotional purposes (Section 5 opt-out). Leave unchecked to allow.</label></div>
+        </div>
+      </div>
+      <div>
+        <div class="confirm-block-title"><i class="ti ti-writing"></i> Participant signature</div>
+        <div class="sig-section">
+          <div class="sig-section-header">Participant information & signature</div>
+          <div class="sig-section-body">
+            <div class="sig-row">
+              <div class="sig-field"><label>Full name <span class="req">*</span></label><input class="normal" type="text" id="sigFullName" placeholder="Full legal name" oninput="checkPayReady()"></div>
+              <div class="sig-field"><label>Phone / Email</label><input class="normal" type="text" id="sigContact" placeholder="Phone or email"></div>
+            </div>
+            <div class="sig-field"><label>Emergency contact & phone <span class="req">*</span></label><input class="normal" type="text" id="sigEmergency" placeholder="Contact name & phone number" oninput="checkPayReady()"></div>
+            <div class="sig-field"><label>Digital signature — type your full name <span class="req">*</span></label><input type="text" id="sigName" placeholder="Your full legal name" oninput="checkPayReady()"></div>
+            <div class="sig-field"><label>Date</label><input class="normal" type="text" id="sigDate" readonly></div>
+          </div>
+        </div>
+        <div class="minor-section">
+          <div class="minor-header"><i class="ti ti-user-check"></i><span>Parent / Guardian Consent (if participant is under 18)</span></div>
+          <div class="minor-toggle"><input type="checkbox" id="chkMinor" onchange="toggleMinor()"><label for="chkMinor">The participant is under 18 years of age — parent/guardian signature required</label></div>
+          <div class="minor-fields" id="minorFields" style="display:none">
+            <div class="sig-field"><label>Parent / Guardian full name <span class="req">*</span></label><input class="normal" type="text" id="guardianName" placeholder="Parent or guardian full name" oninput="checkPayReady()"></div>
+            <div class="sig-field"><label>Guardian digital signature <span class="req">*</span></label><input type="text" id="guardianSig" placeholder="Guardian full legal name" oninput="checkPayReady()"></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="confirm-block-title"><i class="ti ti-credit-card"></i> Payment</div>
+        <div class="payment-block">
+          <div class="payment-block-header">
+            <div class="payment-block-header-left"><i class="ti ti-lock"></i> Secure payment via Square</div>
+            <div class="sq-card-icons"><div class="sq-card-icon">VISA</div><div class="sq-card-icon">MC</div><div class="sq-card-icon">AMEX</div><div class="sq-card-icon">DISC</div></div>
+          </div>
+          <div class="payment-block-body">
+            <div class="amount-display"><span class="amount-label">Amount due today (payment in full)</span><span class="amount-value" id="payAmount">—</span></div>
+            <div id="card-container"></div>
+            <div id="payment-status"></div>
+            <div class="sq-secure-note"><i class="ti ti-lock" style="font-size:12px"></i> Encrypted and processed securely by Square. BioPrecision never stores your card details.</div>
+            <div class="sq-powered"><i class="ti ti-square-rounded" style="font-size:11px"></i> Powered by <span>Square</span></div>
+            <button class="pay-btn" id="payBtn" onclick="processPayment()" disabled><i class="ti ti-lock"></i> Complete payment & confirm booking</button>
+            <div class="payment-required-note"><i class="ti ti-alert-circle"></i> Your session is only confirmed once payment is successfully processed. A receipt and confirmation will be emailed immediately.</div>
+            <div id="testModeSection" style="display:none;margin-top:12px;padding:10px 14px;background:#FFF8EE;border:1px solid #F5C97A;border-radius:8px">
+              <div style="font-size:12px;font-weight:600;color:#92400E;margin-bottom:6px"><i class="ti ti-flask"></i> Test Mode Active</div>
+              <div style="font-size:12px;color:#92400E;margin-bottom:8px">Clicking below sends real emails but does NOT charge a card. Use this to verify email templates.</div>
+              <button onclick="runTestCharge()" style="padding:8px 16px;border:none;border-radius:6px;background:#92400E;color:#fff;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit"><i class="ti ti-send"></i> Send test emails (no charge)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row"><button class="btn-back" onclick="goStep(2)"><i class="ti ti-arrow-left"></i> Back</button></div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="section" id="secDone">
+    <div class="success-wrap">
+      <div class="success-icon"><i class="ti ti-circle-check"></i></div>
+      <div class="paid-badge"><i class="ti ti-check"></i> Payment confirmed</div>
+      <h2 id="doneTitle">You're booked!</h2>
+      <p id="doneMsg">Your session is confirmed and payment has been received.</p>
+      <div class="next-steps" id="doneSteps"></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ── Square config ──
+const SQUARE_APP_ID      = 'sq0idp-K-gpGbesdSUK9ZyAEBSaQw';
+const SQUARE_LOCATION_ID = 'L23VG08ZFF9G3';
+const SERVER_URL         = ''; // empty = same origin (Railway serves both)
+const TEST_MODE_PWD      = 'BioPrecision2025!'; // same as admin password
+let   testModeActive     = false;
+
+// ── Session data ──
+const INDIV_HITTING=[{name:"Advanced Hitting Assessment",price:"$400",detail:"Full biomechanics — 1.5 hrs. Motion capture, ground force, swing design, PDF report.",type:"assessment"},{name:"In-House Hitting Membership",price:"$500/mo",detail:"Monthly — 1 hr/week in-house training. Initial evaluation required.",type:"membership"},{name:"Remote Hitting Membership",price:"$300/mo",detail:"Monthly remote — 1 hr video call/month + remote training plan. Initial evaluation required.",type:"remote"},{name:"Hitting Tune-Up — Single Session",price:"$125",detail:"1-hour individualized in-house hitting tune-up.",type:"tuneup"},{name:"Hitting Tune-Up — 4-Session Pack",price:"$450",detail:"Four 1-hour hitting tune-up sessions.",type:"tuneup"},{name:"Hitting Tune-Up — 10-Session Pack",price:"$1,000",detail:"Ten 1-hour hitting tune-up sessions.",type:"tuneup"},{name:"Recruitment Readiness Package",price:"$1,500",detail:"Athlete assessment, 1-month remote plan, recruitment strategy & highlight video.",type:"assessment"}];
+const INDIV_PITCHING=[{name:"Advanced Pitching Assessment",price:"$400",detail:"Full biomechanics — 1.5 hrs. Motion capture, kinematic sequencing, joint stress, pitch design, PDF report.",type:"assessment"},{name:"In-House Pitching Membership",price:"$500/mo",detail:"Monthly — 1 hr/week in-house training. Initial evaluation required.",type:"membership"},{name:"Remote Pitching Membership",price:"$300/mo",detail:"Monthly remote — 1 hr video call/month + remote training plan. Initial evaluation required.",type:"remote"},{name:"Pitching Tune-Up — Single Session",price:"$125",detail:"1-hour individualized in-house pitching tune-up.",type:"tuneup"},{name:"Pitching Tune-Up — 4-Session Pack",price:"$450",detail:"Four 1-hour pitching tune-up sessions.",type:"tuneup"},{name:"Pitching Tune-Up — 10-Session Pack",price:"$1,000",detail:"Ten 1-hour pitching tune-up sessions.",type:"tuneup"},{name:"Recruitment Readiness Package",price:"$1,500",detail:"Athlete assessment, 1-month remote plan, recruitment strategy & highlight video.",type:"assessment"}];
+const TEAM_HITTING=[
+  {name:"Advanced Hitting Assessment",price:"$200/player",detail:"Full team biomechanics session — motion capture, swing design, PDF report per athlete. 6+ athletes.",type:"team",addon:true},
+  {name:"Add-On: Team Workout at WVU Baseball Field",price:"$500/session",detail:"Add-on to the Advanced Assessment. Full pro-style team workout at WVU Baseball Field.",type:"team",addon:true},
+];
+const TEAM_PITCHING=[
+  {name:"Advanced Pitching Assessment",price:"$200/player",detail:"Full team biomechanics session — kinematic sequencing, joint stress, pitch design, PDF report per athlete. 6+ athletes.",type:"team",addon:true},
+  {name:"Add-On: Team Workout at WVU Baseball Field",price:"$500/session",detail:"Add-on to the Advanced Assessment. Full pro-style team workout at WVU Baseball Field.",type:"team",addon:true},
+];
+
+const TEAM_BOTH=[
+  {name:"Advanced Hitting & Pitching Assessments",price:"TBD",detail:"Full biomechanics assessments for two-way players — hitting and pitching. Pricing based on number of two-way players (15% discount applied). Contact BioPrecision for quote.",type:"team",addon:false},
+  {name:"Add-On: Team Workout at WVU Baseball Field",price:"$500/session",detail:"Add-on to the Advanced Assessments. Full pro-style team workout at WVU Baseball Field.",type:"team",addon:true},
+];
+let selClientType=null,selServiceType=null,selHittingIdx=null,selPitchingIdx=null,selHittingData=null,selPitchingData=null;
+let selSide=null,selDateIdx=null,selTime=null,dates=[];
+let scheduleMode='live';
+let dayAvailability={0:true,1:true,2:true,3:true,4:true,5:true,6:true};
+let blockedSlots={}; // { 'YYYY-MM-DD': { 'HH:MM AM': true } }
+let bookedSlots={}; // { 'YYYY-MM-DD': { 'HH:MM AM': true } }
+let adminSelectedDow=1; // default to Monday
+const takenSlots={};
+let adminVisible=false,isMinor=false;
+let squareCard=null,squarePayments=null,squareReady=false;
+
+document.getElementById('sigDate').value=new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
+
+function renderOpts(sessions,containerId,key,multiSelect){
+  const el=document.getElementById(containerId);if(!el)return;el.innerHTML='';
+  sessions.forEach((s,i)=>{
+    const div=document.createElement('div');div.className='session-opt';div.id=`opt-${key}-${i}`;
+    const ctrl=multiSelect
+      ?`<div class="s-checkbox" id="chk-${key}-${i}" style="width:16px;height:16px;border:2px solid #D1D5DB;border-radius:4px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>`
+      :`<div class="s-radio"><div class="s-radio-dot"></div></div>`;
+    div.innerHTML=`<div class="session-opt-left">${ctrl}<div><div class="session-opt-name">${s.name}</div><div class="session-opt-detail">${s.detail}</div></div></div><div class="session-opt-price">${s.price}</div>`;
+    div.onclick=()=>multiSelect?pickSessionMulti(key,i,s,div):pickSession(key,i,s);
+    el.appendChild(div);
+  });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PATHS
-// ─────────────────────────────────────────────────────────────────────────────
-const ROSTER_PATH = path.join(__dirname, 'BioPrecision_Roster.xlsx');
+// Multi-select for team sessions (Assessment + Add-On)
+let teamSelections={}; // { key: Set of indices }
+function pickSessionMulti(key,idx,session,el){
+  if(!teamSelections[key])teamSelections[key]=new Set();
+  const s=teamSelections[key];
+  if(s.has(idx)){s.delete(idx);el.classList.remove('selected');const chk=document.getElementById(`chk-${key}-${idx}`);if(chk){chk.style.background='';chk.style.borderColor='#D1D5DB';chk.innerHTML='';}}
+  else{s.add(idx);el.classList.add('selected');const chk=document.getElementById(`chk-${key}-${idx}`);if(chk){chk.style.background='#011244';chk.style.borderColor='#011244';chk.innerHTML='<i class="ti ti-check" style="color:#fff;font-size:10px"></i>';}}
+  checkStep2();
+}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /api/square/charge
-// Called by the frontend after the Square card form is tokenized.
-// ─────────────────────────────────────────────────────────────────────────────
-app.post('/api/square/charge', async (req, res) => {
-  const { sourceId, amountMoney, booking } = req.body;
+function pickSession(key,idx,session){
+  const isHit=key.includes('hit'),isPitch=key.includes('pitch');
+  if(isHit){selHittingIdx=idx;selHittingData=session;document.querySelectorAll('[id^="opt-"][id*="hit"]').forEach(e=>e.classList.remove('selected'));document.getElementById(`opt-${key}-${idx}`).classList.add('selected');}
+  if(isPitch){selPitchingIdx=idx;selPitchingData=session;document.querySelectorAll('[id^="opt-"][id*="pitch"]').forEach(e=>e.classList.remove('selected'));document.getElementById(`opt-${key}-${idx}`).classList.add('selected');}
+  checkStep2();
+}
 
-  if (!sourceId || !amountMoney || !booking) {
-    return res.status(400).json({ success: false, error: 'Missing required fields.' });
+function makeTrail(ct,st){
+  const ctL=ct==='individual'?'Individual':'Team',ctC=ct==='individual'?'indiv':'team';
+  let stL='',stC='';
+  if(st==='hitting'){stL='Hitting';stC='hit';}else if(st==='pitching'){stL='Pitching';stC='pitch';}else if(st==='both'){stL='Two-Way';stC='both';}
+  let h=`<span class="trail-chip ${ctC}">${ctL} <span class="trail-chip-edit" onclick="resetToTier1()">change</span></span>`;
+  if(stL)h+=`<span class="trail-arrow">›</span><span class="trail-chip ${stC}">${stL} <span class="trail-chip-edit" onclick="resetToTier2()">change</span></span>`;
+  return h;
+}
+
+function resetToTier1(){selClientType=null;selServiceType=null;selHittingIdx=null;selPitchingIdx=null;selHittingData=null;selPitchingData=null;teamSelections={};document.querySelectorAll('.ctype-card').forEach(c=>c.classList.remove('selected'));document.querySelectorAll('.service-section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.session-panel').forEach(p=>p.classList.remove('active'));document.getElementById('btnStep2').disabled=true;}
+function resetToTier2(){selServiceType=null;selHittingIdx=null;selPitchingIdx=null;selHittingData=null;selPitchingData=null;teamSelections={};document.querySelectorAll('.stype-card').forEach(c=>c.classList.remove('selected'));document.querySelectorAll('.session-panel').forEach(p=>p.classList.remove('active'));document.getElementById('btnStep2').disabled=true;if(selClientType==='individual'){document.getElementById('tier2-individual').classList.add('active');document.getElementById('trailIndiv').innerHTML=makeTrail('individual',null);}else{document.getElementById('tier2-team').classList.add('active');document.getElementById('trailTeam').innerHTML=makeTrail('team',null);}}
+
+function selectClientType(type){selClientType=type;selServiceType=null;selHittingIdx=null;selPitchingIdx=null;selHittingData=null;selPitchingData=null;document.querySelectorAll('.ctype-card').forEach(c=>c.classList.remove('selected'));document.getElementById('ct-'+type).classList.add('selected');document.querySelectorAll('.service-section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.session-panel').forEach(p=>p.classList.remove('active'));document.getElementById('btnStep2').disabled=true;if(type==='individual'){document.getElementById('tier2-individual').classList.add('active');document.getElementById('trailIndiv').innerHTML=makeTrail('individual',null);}else{document.getElementById('tier2-team').classList.add('active');document.getElementById('trailTeam').innerHTML=makeTrail('team',null);}}
+
+function selectServiceType(type){selServiceType=type;selHittingIdx=null;selPitchingIdx=null;selHittingData=null;selPitchingData=null;document.querySelectorAll('.stype-card').forEach(c=>c.classList.remove('selected'));document.querySelectorAll('.session-panel').forEach(p=>p.classList.remove('active'));document.getElementById('btnStep2').disabled=true;const px=selClientType==='individual'?'si-':'st-';const card=document.getElementById(px+type);if(card)card.classList.add('selected');const trail=makeTrail(selClientType,type);if(selClientType==='individual'){if(type==='hitting'){document.getElementById('panel-indiv-hitting').classList.add('active');document.getElementById('trailIndivHit').innerHTML=trail;}else if(type==='pitching'){document.getElementById('panel-indiv-pitching').classList.add('active');document.getElementById('trailIndivPitch').innerHTML=trail;}else{document.getElementById('panel-indiv-both').classList.add('active');document.getElementById('trailIndivBoth').innerHTML=trail;}selSide=type==='both'?'both':type;}else{if(type==='hitting'){document.getElementById('panel-team-hitting').classList.add('active');document.getElementById('trailTeamHit').innerHTML=trail;selSide='hitting';}
+    else if(type==='pitching'){document.getElementById('panel-team-pitching').classList.add('active');document.getElementById('trailTeamPitch').innerHTML=trail;selSide='pitching';}
+    else{document.getElementById('panel-team-both').classList.add('active');document.getElementById('trailTeamBoth').innerHTML=trail;selSide='both';}}}
+
+function checkStep2(){
+  let ok=false;
+  if(!selClientType||!selServiceType){ok=false;}
+  else if(selClientType==='team'){
+    const key='team-'+(selServiceType==='hitting'?'hit':selServiceType==='pitching'?'pitch':'both');
+    ok=teamSelections[key]&&teamSelections[key].size>0;
   }
-
-  try {
-    // 1. Charge the card via Square
-    const { result } = await squareClient.payments.createPayment({
-      sourceId,
-      idempotencyKey:    crypto.randomUUID(),
-      amountMoney: {
-        amount:   BigInt(amountMoney.amount), // Square uses cents as BigInt
-        currency: 'USD',
-      },
-      locationId:        process.env.SQUARE_LOCATION_ID,
-      note:              `BioPrecision: ${booking.session}`,
-      buyerEmailAddress: booking.email,
-    });
-
-    const payment = result.payment;
-    console.log('✅ Square payment successful:', payment.id);
-
-    // 2. Run all post-payment integrations in parallel
-    await Promise.all([
-      submitMondayForm(booking),
-      updateRosterExcel(booking),
-      sendOwnerNotification(booking, payment, amountMoney.amount),
-      sendClientConfirmation(booking, payment, amountMoney.amount),
-    ]);
-
-    res.json({
-      success:    true,
-      paymentId:  payment.id,
-      receiptUrl: payment.receiptUrl,
-    });
-
-  } catch (error) {
-    console.error('❌ Charge error:', error);
-    const msg = error?.errors?.[0]?.detail || error?.message || 'Payment processing failed.';
-    res.status(500).json({ success: false, error: msg });
-  }
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MONDAY.COM — New Event Request Form
-// Submits automatically after payment. Two-Way sessions submit twice
-// (once for Batting Practice / hitting, once for Bullpen / pitching).
-// ─────────────────────────────────────────────────────────────────────────────
-function getMondaySessionTypes(serviceType, side) {
-  // Two-way individual or team with both sides = two submissions
-  if (serviceType === 'both' || side === 'both') {
-    return ['Batting Practice', 'Bullpen'];
-  }
-  if (side === 'hitting' || serviceType === 'hitting') return ['Batting Practice'];
-  if (side === 'pitching' || serviceType === 'pitching') return ['Bullpen'];
-  return ['Workout'];
+  else if(selServiceType==='hitting')ok=selHittingIdx!==null;
+  else if(selServiceType==='pitching')ok=selPitchingIdx!==null;
+  else if(selServiceType==='both')ok=selHittingIdx!==null&&selPitchingIdx!==null;
+  document.getElementById('btnStep2').disabled=!ok;
 }
 
-function getMondayDuration(sessionType) {
-  if (sessionType === 'team')       return '240 minutes';
-  if (sessionType === 'assessment') return '90 minutes';
-  return '60 minutes';
+function generateTimes(type){const slots=[],dur=type==='assessment'?90:60;let h=9,m=0;while(true){if(h*60+m+dur>21*60)break;const ap=h>=12?'PM':'AM',dh=h>12?h-12:(h===0?12:h),dm=m===0?'00':m;slots.push(`${dh}:${dm} ${ap}`);m+=dur;if(m>=60){h+=Math.floor(m/60);m=m%60;}}return slots;}
+
+function buildDates(){dates=[];const today=new Date();for(let i=1;i<=21;i++){const d=new Date(today);d.setDate(today.getDate()+i);dates.push(d);}}
+function formatDate(d){return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}
+
+function buildDatesUI(){buildDates();const row=document.getElementById('dateRow');row.innerHTML='';dates.forEach((d,i)=>{const dow=d.getDay(),isClosed=!dayAvailability[dow];const btn=document.createElement('div');btn.className='date-btn'+(isClosed?' closed-day':'');btn.innerHTML=`<div class="d-name">${d.toLocaleDateString('en-US',{weekday:'short'})}</div><div class="d-num">${d.getDate()}</div><div class="d-mon">${d.toLocaleDateString('en-US',{month:'short'})}</div>`;if(!isClosed){btn.onclick=()=>{selDateIdx=i;selTime=null;document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');buildSlotsUI();document.getElementById('slotSection').style.display='block';document.getElementById('noDateMsg').style.display='none';document.getElementById('btnStep3').disabled=true;};}row.appendChild(btn);});}
+
+function buildSlotsUI(){const dur=selHittingData&&selHittingData.type==='assessment'||selPitchingData&&selPitchingData.type==='assessment'?'assessment':'tuneup';const times=generateTimes(dur);const side=selSide==='both'?'hitting':selSide;const sideLabel=selSide==='both'?'Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';const grid=document.getElementById('slotGrid');grid.innerHTML='';document.getElementById('slotsLabel').textContent=`Available ${dur==='assessment'?'90-min':'60-min'} slots — ${sideLabel}:`;times.forEach(t=>{const ds2=dates[selDateIdx]?dates[selDateIdx].toISOString().split('T')[0]:'';
+        const tk=!!(takenSlots[`${selDateIdx}-${side}-${t}`])||(blockedSlots[ds2]&&blockedSlots[ds2][t]);const btn=document.createElement('button');btn.className='slot-btn'+(tk?' taken':'');btn.innerHTML=`${t}<div class="slot-sub">${dur==='assessment'?'90 min':'60 min'}</div>`;if(!tk){btn.onclick=()=>{document.querySelectorAll('.slot-btn').forEach(s=>s.classList.remove('selected'));btn.classList.add('selected');selTime=t;document.getElementById('btnStep3').disabled=false;};}grid.appendChild(btn);});}
+
+function buildAdminPanel(){
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const container=document.getElementById('adminDays');
+  container.innerHTML='';
+  days.forEach((d,i)=>{
+    const wrap=document.createElement('div');wrap.className='admin-day';
+    const lbl=document.createElement('div');lbl.className='admin-day-label';lbl.textContent=d;
+    const btn=document.createElement('button');
+    btn.className='admin-day-toggle'+(dayAvailability[i]?'':' closed');
+    btn.textContent=dayAvailability[i]?'Open':'Closed';
+    btn.onclick=()=>{dayAvailability[i]=!dayAvailability[i];btn.textContent=dayAvailability[i]?'Open':'Closed';btn.className='admin-day-toggle'+(dayAvailability[i]?'':' closed');buildDatesUI();buildAdminSlots();};
+    wrap.appendChild(lbl);wrap.appendChild(btn);container.appendChild(wrap);
+  });
+  buildAdminDayTabs();
+  buildAdminSlots();
 }
 
-function getMondayLevel(level) {
-  // Map BioPrecision levels to Monday.com dropdown options
-  const map = {
-    'High school':             'High School',
-    'College':                 'College',
-    'Amateur / independent':   'Amateur',
-    'Professional':            'MLB',
-  };
-  return map[level] || 'Other';
+function buildAdminDayTabs(){
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const tabs=document.getElementById('adminDayTabs');
+  if(!tabs)return;
+  tabs.innerHTML='';
+  days.forEach((d,i)=>{
+    const btn=document.createElement('button');
+    const isClosed=!dayAvailability[i];
+    btn.className='day-tab'+(i===adminSelectedDow?' active':'')+(isClosed?' closed-tab':'');
+    btn.textContent=d;
+    if(!isClosed){btn.onclick=()=>{adminSelectedDow=i;buildAdminDayTabs();buildAdminSlots();};}
+    tabs.appendChild(btn);
+  });
 }
 
-async function submitMondayForm(booking) {
-  const sessionTypes = getMondaySessionTypes(booking.serviceType, booking.side);
-  const duration     = getMondayDuration(booking.sessionType);
-  const level        = getMondayLevel(booking.level);
-
-  for (const sessionType of sessionTypes) {
-    const eventName = booking.clientType === 'team'
-      ? `BioPrecision — ${booking.session} · ${booking.teamName}`
-      : `BioPrecision — ${booking.session} · ${booking.name}`;
-
-    // Build column values for Monday.com
-    // Column IDs below must match your actual Monday.com board column IDs.
-    // Find them in: Board Settings → Columns → click a column → ID shown in URL.
-    const columnValues = JSON.stringify({
-      name:            eventName,               // Event Name
-      date4:           { date: booking.date },  // Event Date  (use your column ID)
-      hour:            { hour: booking.time },  // Event Time EST
-      dropdown:        { labels: ['KinaTrax'] },// Product
-      dropdown1:       { labels: ['Tier 2 (System Check + Live Support)'] }, // Support Tier
-      text:            duration,                // Expected Duration
-      dropdown2:       { labels: [level] },     // Level
-      dropdown3:       { labels: [sessionType] },// Session Type
-      text1:           booking.name,            // Requestor Name
-      email:           { email: booking.email, text: booking.email }, // Requestor Email
-    });
-
-    const mutation = `
-      mutation {
-        create_item(
-          board_id: ${process.env.MONDAY_BOARD_ID},
-          item_name: "${eventName.replace(/"/g, '\\"')}",
-          column_values: "${columnValues.replace(/"/g, '\\"')}"
-        ) {
-          id
-        }
-      }
-    `;
-
-    const response = await axios.post(
-      'https://api.monday.com/v2',
-      { query: mutation },
-      {
-        headers: {
-          'Authorization': process.env.MONDAY_API_TOKEN,
-          'Content-Type':  'application/json',
-          'API-Version':   '2024-01',
-        },
-      }
-    );
-
-    if (response.data.errors) {
-      console.error('Monday.com error:', response.data.errors);
-    } else {
-      console.log(`✅ Monday.com event created (${sessionType}):`, response.data.data?.create_item?.id);
+function buildAdminSlots(){
+  const grid=document.getElementById('adminSlotGrid');
+  if(!grid)return;
+  grid.innerHTML='';
+  const ADMIN_TIMES=['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM','9:00 PM'];
+  // Get the next occurrence of adminSelectedDow
+  const today=new Date();
+  const diff=(adminSelectedDow-today.getDay()+7)%7||7;
+  const targetDate=new Date(today);targetDate.setDate(today.getDate()+diff);
+  const ds=targetDate.toISOString().split('T')[0];
+  ADMIN_TIMES.forEach(t=>{
+    const isBlocked=blockedSlots[ds]&&blockedSlots[ds][t];
+    const isBooked=bookedSlots[ds]&&bookedSlots[ds][t];
+    const btn=document.createElement('button');
+    btn.className='admin-slot-btn'+(isBooked?' booked':isBlocked?' blocked':'');
+    btn.innerHTML=t+'<div class="admin-slot-sub">'+(isBooked?'Booked':isBlocked?'Blocked':'Open')+'</div>';
+    if(!isBooked){
+      btn.onclick=()=>{
+        if(!blockedSlots[ds])blockedSlots[ds]={};
+        blockedSlots[ds][t]=!blockedSlots[ds][t];
+        if(!blockedSlots[ds][t])delete blockedSlots[ds][t];
+        buildAdminSlots();buildSlotsUI();
+      };
     }
-  }
+    grid.appendChild(btn);
+  });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EXCEL ROSTER UPDATE
-// Individual → append row to "Individual Clients" tab
-// Team       → create new tab named after the team
-// Then email the updated file to BioPrecision.
-// ─────────────────────────────────────────────────────────────────────────────
-async function updateRosterExcel(booking) {
-  if (!fs.existsSync(ROSTER_PATH)) {
-    console.warn('⚠️  Roster file not found at', ROSTER_PATH);
+function bulkBlockSlots(action){
+  const ADMIN_TIMES=['9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM','9:00 PM'];
+  const from=document.getElementById('bulkFrom').value;
+  const to=document.getElementById('bulkTo').value;
+  const fromIdx=ADMIN_TIMES.indexOf(from),toIdx=ADMIN_TIMES.indexOf(to);
+  if(fromIdx>=toIdx){alert('From time must be before To time.');return;}
+  const slotsToAct=ADMIN_TIMES.slice(fromIdx,toIdx);
+  const today=new Date();
+  // Apply to the selected day (next occurrence) and all future same days for 3 weeks
+  for(let w=0;w<3;w++){
+    const diff=(adminSelectedDow-today.getDay()+7)%7+w*7||(w===0?7:w*7);
+    const d=new Date(today);d.setDate(today.getDate()+(adminSelectedDow-today.getDay()+7)%7+(w===0&&(adminSelectedDow-today.getDay()+7)%7===0?7:0)+w*7);
+    // Simpler: just use the current week's date for that dow
+    const base=new Date(today);base.setDate(today.getDate()+(adminSelectedDow-today.getDay()+7)%7+(dayAvailability[adminSelectedDow]?0:0));
+    const ds=base.toISOString().split('T')[0];
+    if(!blockedSlots[ds])blockedSlots[ds]={};
+    slotsToAct.forEach(t=>{
+      if(action==='block')blockedSlots[ds][t]=true;
+      else delete blockedSlots[ds][t];
+    });
+    break; // apply to selected day's next occurrence only for now
+  }
+  buildAdminSlots();buildSlotsUI();
+}
+
+function toggleAdmin(){
+  if(adminVisible){
+    adminVisible=false;
+    document.getElementById('adminPanel').style.display='none';
     return;
   }
-
-  const wb = XLSX.readFile(ROSTER_PATH);
-
-  if (booking.clientType === 'individual') {
-    // ── Add to Individual Clients tab ──────────────────────────────────────
-    const sheetName = 'Individual Clients';
-    const ws        = wb.Sheets[sheetName];
-    const data      = XLSX.utils.sheet_to_json(ws, { defval: '' });
-
-    data.push({
-      ID:            '',
-      FirstName:     booking.firstName,
-      LastName:      booking.lastName,
-      UniformNumber: '',
-      Weight:        booking.weight || '',
-    });
-
-    wb.Sheets[sheetName] = XLSX.utils.json_to_sheet(data);
-
-    // Style the header row navy (basic — full styling requires xlsx-style)
-    console.log(`✅ Excel: added ${booking.name} to Individual Clients tab`);
-
+  // Prompt for admin password
+  const pwd=prompt('Enter admin password:');
+  if(pwd===null)return; // cancelled
+  if(pwd==='BioPrecision2025!'){
+    adminVisible=true;
+    document.getElementById('adminPanel').style.display='block';
+    buildAdminPanel();
   } else {
-    // ── Create new tab for team ────────────────────────────────────────────
-    const teamName = booking.teamName || 'New Team';
+    alert('Incorrect password.');
+  }
+}
 
-    // If tab already exists (re-booking same team), append; otherwise create
-    const existingSheet = wb.Sheets[teamName];
-    let data = existingSheet
-      ? XLSX.utils.sheet_to_json(existingSheet, { defval: '' })
-      : [];
+function getScheduleMode(){if(selClientType==='team')return 'team';const types=[selHittingData?.type,selPitchingData?.type].filter(Boolean);if(types.length&&types.every(t=>t==='remote'))return 'remote';return 'live';}
 
-    booking.roster.forEach(p => {
-      data.push({
-        ID:            '',
-        FirstName:     p.firstName  || p.name?.split(' ')[0] || '',
-        LastName:      p.lastName   || p.name?.split(' ')[1] || '',
-        UniformNumber: p.uniform    || '',
-        Weight:        p.weight     || '',
+function setupStep3(){scheduleMode=getScheduleMode();document.getElementById('teamBypass').style.display='none';document.getElementById('remoteBypass').style.display='none';document.getElementById('liveSchedule').style.display='none';if(scheduleMode==='team'){document.getElementById('teamBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="We'll reach out to schedule your team session.";document.getElementById('btnStep3').innerHTML='Submit request <i class="ti ti-send"></i>';}else if(scheduleMode==='remote'){document.getElementById('remoteBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="Your remote session doesn't require a lab visit.";document.getElementById('btnStep3').innerHTML='Continue <i class="ti ti-arrow-right"></i>';}else{document.getElementById('liveSchedule').style.display='block';document.getElementById('schedSub').textContent="Select an available date and time below.";document.getElementById('btnStep3').innerHTML='Continue <i class="ti ti-arrow-right"></i>';const bc=selSide==='both'?'both':selSide,bl=selSide==='both'?'Two-Way — Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';document.getElementById('schedBadge').innerHTML=`<span class="sched-badge ${bc}"><i class="ti ti-${selSide==='pitching'?'wind':'ball-baseball'}"></i> ${bl}</span>`;buildAdminPanel();buildDatesUI();selDateIdx=null;selTime=null;document.getElementById('slotSection').style.display='none';document.getElementById('noDateMsg').style.display='block';document.getElementById('btnStep3').disabled=true;}}
+
+function buildConfirm(){
+  document.getElementById('sumName').textContent=document.getElementById('fname').value+' '+document.getElementById('lname').value;
+  document.getElementById('sumEmail').textContent=document.getElementById('email').value;
+  document.getElementById('sumPhone').textContent=document.getElementById('phone').value;
+  const ft=document.getElementById('heightFt').value,ins=document.getElementById('heightIn').value,wt=document.getElementById('weight').value;
+  document.getElementById('sumPhysical').textContent=(ft&&ins?ft+"'"+ins+'"':'—')+' / '+(wt?wt+' lbs':'—');
+  document.getElementById('sumLevel').textContent=document.getElementById('level').value||'—';
+  document.getElementById('sumReferral').textContent=document.getElementById('referral').value||'—';
+  const ctL=selClientType==='individual'?'Individual':'Team',stL=selServiceType==='both'?'Both (Two-Way)':selServiceType==='hitting'?'Hitting':'Pitching';
+  document.getElementById('sumServiceType').textContent=ctL+' — '+stL;
+  const sessions=[],prices=[];
+  if(selClientType==='team'){
+    const key='team-'+(selServiceType==='hitting'?'hit':selServiceType==='pitching'?'pitch':'both');
+    const src=selServiceType==='hitting'?TEAM_HITTING:selServiceType==='pitching'?TEAM_PITCHING:TEAM_BOTH;
+    if(teamSelections[key]){teamSelections[key].forEach(i=>{sessions.push(src[i].name);prices.push(src[i].price);});}
+  } else {
+    if((selServiceType==='hitting'||selServiceType==='both')&&selHittingData){sessions.push(selHittingData.name);prices.push(selHittingData.price);}
+    if((selServiceType==='pitching'||selServiceType==='both')&&selPitchingData){sessions.push(selPitchingData.name);prices.push(selPitchingData.price);}
+  }
+  document.getElementById('sumSession').textContent=sessions.join(' + ')||'—';
+  if(scheduleMode==='team'||scheduleMode==='remote'){document.getElementById('sumSideRow').style.display='none';document.getElementById('sumDateRow').style.display='none';}
+  else{document.getElementById('sumSideRow').style.display='flex';document.getElementById('sumDateRow').style.display='flex';document.getElementById('sumSide').textContent=selSide==='both'?'Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';document.getElementById('sumDateTime').textContent=(selDateIdx!==null&&selTime)?formatDate(dates[selDateIdx])+' at '+selTime:'—';}
+  const priceStr=prices.join(' + ')||'—';
+  document.getElementById('sumPrice').textContent=priceStr;
+  document.getElementById('payAmount').textContent=priceStr;
+  document.getElementById('sigFullName').value=document.getElementById('fname').value+' '+document.getElementById('lname').value;
+  document.getElementById('sigContact').value=document.getElementById('email').value;
+}
+
+function toggleMinor(){isMinor=document.getElementById('chkMinor').checked;document.getElementById('minorFields').style.display=isMinor?'flex':'none';checkPayReady();}
+
+function checkPayReady(){
+  const w=document.getElementById('chkWaiver').checked,med=document.getElementById('chkMedical').checked,data=document.getElementById('chkData').checked;
+  const sig=document.getElementById('sigName').value.trim(),fullName=document.getElementById('sigFullName').value.trim(),emergency=document.getElementById('sigEmergency').value.trim();
+  let guardianOk=true;
+  if(isMinor){const gn=document.getElementById('guardianName').value.trim(),gs=document.getElementById('guardianSig').value.trim();guardianOk=gn&&gs;}
+  const ok=w&&med&&data&&sig&&fullName&&emergency&&guardianOk&&squareReady;
+  document.getElementById('payBtn').disabled=!ok;
+}
+
+// Square SDK
+async function initSquare(){
+  if(squareReady)return;
+  if(!window.Square){showPayStatus('Payment form failed to load. Please refresh.',true);return;}
+  try{
+    squarePayments=Square.payments(SQUARE_APP_ID,SQUARE_LOCATION_ID);
+    squareCard=await squarePayments.card({style:{'.input-container':{borderRadius:'6px',borderColor:'#D1D5DB'},'.input-container.is-focus':{borderColor:'#011244'},'.input-container.is-error':{borderColor:'#EF4444'}}});
+    await squareCard.attach('#card-container');
+    squareReady=true;
+    checkPayReady();
+  }catch(err){console.error('Square init error:',err);showPayStatus('Payment form failed to load. Please refresh.',true);}
+}
+
+async function processPayment(){
+  const btn=document.getElementById('payBtn');
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Processing payment...';
+  showPayStatus('',false);
+  try{
+    const fname=document.getElementById('fname').value.trim(),lname=document.getElementById('lname').value.trim();
+    const email=document.getElementById('email').value.trim(),phone=document.getElementById('phone').value.trim();
+    const priceStr=document.getElementById('payAmount').textContent.replace(/[^0-9.]/g,'');
+    const amountCents=Math.round(parseFloat(priceStr)*100);
+    const tokenResult=await squareCard.tokenize({amount:priceStr,billingContact:{givenName:fname,familyName:lname,email,phone,countryCode:'US'},currencyCode:'USD',intent:'CHARGE',customerInitiated:true,sellerKeyedIn:false});
+    if(tokenResult.status==='OK'){
+      const response=await fetch(SERVER_URL+'/api/square/charge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        sourceId:tokenResult.token,
+        amountMoney:{amount:amountCents,currency:'USD'},
+        booking:{
+          name:fname+' '+lname,firstName:fname,lastName:lname,email,phone,
+          weight:document.getElementById('weight').value,
+          level:document.getElementById('level').value,
+          referral:document.getElementById('referral').value,
+          session:document.getElementById('sumSession').textContent,
+          serviceType:selServiceType,side:selSide,
+          sessionType:selHittingData?.type||selPitchingData?.type||'tuneup',
+          clientType:selClientType,
+          dateTime:document.getElementById('sumDateTime')?.textContent||'Remote/Team TBD',
+          date:selDateIdx!==null?dates[selDateIdx]?.toISOString().split('T')[0]:'',
+          time:selTime||'',
+        }
+      })});
+      const result=await response.json();
+      if(result.success){showSuccessScreen();}
+      else{throw new Error(result.error||'Payment was declined.');}
+    }else{throw new Error(tokenResult.errors.map(e=>e.message).join(' '));}
+  }catch(err){
+    console.error('Payment error:',err);
+    showPayStatus(err.message||'Payment failed. Please try again.',true);
+    btn.disabled=false;btn.innerHTML='<i class="ti ti-lock"></i> Complete payment & confirm booking';
+    checkPayReady();
+  }
+}
+
+function showPayStatus(msg,isError){
+  const el=document.getElementById('payment-status');
+  if(!msg){el.style.display='none';return;}
+  el.textContent=msg;el.style.color=isError?'#EF4444':'#065F46';el.style.display='block';
+}
+
+async function showSuccessScreen(){
+  const email=document.getElementById('email').value;
+  const isTeam=scheduleMode==='team',isRemote=scheduleMode==='remote';
+
+  // Fire team request email if this is a team booking
+  if(isTeam){
+    try{
+      const key='team-'+(selServiceType==='hitting'?'hit':selServiceType==='pitching'?'pitch':'both');
+      const src=selServiceType==='hitting'?TEAM_HITTING:selServiceType==='pitching'?TEAM_PITCHING:TEAM_BOTH;
+      const selectedSessions=teamSelections[key]?[...teamSelections[key]].map(i=>src[i].name).join(' + '):'—';
+      await fetch('/api/team/request',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({booking:{
+          name:document.getElementById('fname').value+' '+document.getElementById('lname').value,
+          email,
+          phone:document.getElementById('phone').value,
+          teamName:document.getElementById('teamSchool').value,
+          level:document.getElementById('level').value,
+          referral:document.getElementById('referral').value,
+          goals:document.getElementById('goals').value,
+          session:selectedSessions,
+          serviceType:selServiceType==='both'?'Two-Way':selServiceType==='hitting'?'Hitting':'Pitching',
+        }})
       });
-    });
+    }catch(e){console.error('Team request email failed:',e);}
+  }
+  document.getElementById('doneTitle').textContent=isTeam?'Request received!':'You\'re booked!';
+  document.getElementById('doneMsg').textContent=isTeam?'Your team booking request has been submitted. Our staff will contact you within 24 hours.':isRemote?'Your remote session is confirmed. A calendar invite and video call link are on the way.':'Your session is confirmed and payment has been received. See you at the lab!';
+  const steps=isTeam?[{icon:'ti-mail',text:`Confirmation sent to <strong>${email}</strong>`},{icon:'ti-phone',text:'BioPrecision will contact you within 24 hrs to schedule'},{icon:'ti-file-invoice',text:'Invoice will be sent once your session is confirmed'},{icon:'ti-shield-check',text:'Signed waiver copy sent to your email'}]:isRemote?[{icon:'ti-mail',text:`Confirmation sent to <strong>${email}</strong>`},{icon:'ti-receipt',text:'Square payment receipt emailed to you'},{icon:'ti-video',text:'Calendar invite & video call link sent to your email'},{icon:'ti-shield-check',text:'Signed waiver & data consent sent to your email'}]:[{icon:'ti-mail',text:`Booking confirmation sent to <strong>${email}</strong>`},{icon:'ti-receipt',text:'Square payment receipt emailed to you'},{icon:'ti-calendar',text:'Session added to the BioPrecision schedule'},{icon:'ti-shield-check',text:'Signed waiver & data consent sent to your email'}];
+  document.getElementById('doneSteps').innerHTML=steps.map(s=>`<div class="next-step"><i class="ti ${s.icon}"></i> ${s.text}</div>`).join('');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.bp-step').forEach(el=>el.classList.add('done'));
+  document.getElementById('secDone').classList.add('active');
+}
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    if (existingSheet) {
-      wb.Sheets[teamName] = ws;
+function toggleTestMode(){
+  const pwd=prompt('Enter admin password to enable test mode:');
+  if(pwd===null)return;
+  if(pwd===TEST_MODE_PWD){
+    testModeActive=!testModeActive;
+    const btn=document.getElementById('testModeBtn');
+    const section=document.getElementById('testModeSection');
+    if(testModeActive){
+      btn.style.background='#FEF3C7';btn.style.color='#92400E';btn.style.borderColor='#F5C97A';
+      btn.innerHTML='<i class="ti ti-flask"></i> Test mode ON';
+      if(section)section.style.display='block';
+      alert('Test mode ON — emails will send but no card will be charged.');
     } else {
-      XLSX.utils.book_append_sheet(wb, ws, teamName);
+      btn.style.background='';btn.style.color='';btn.style.borderColor='';
+      btn.innerHTML='<i class="ti ti-flask"></i> Test mode';
+      if(section)section.style.display='none';
     }
-
-    console.log(`✅ Excel: created/updated tab "${teamName}" with ${booking.roster.length} players`);
+  } else {
+    alert('Incorrect password.');
   }
-
-  // Save updated file
-  XLSX.writeFile(wb, ROSTER_PATH);
-
-  // Email updated file to BioPrecision
-  const subject = booking.clientType === 'team'
-    ? `Roster updated — New team: ${booking.teamName}`
-    : `Roster updated — ${booking.name} added to Individual Clients`;
-
-  await sendEmail({
-    from:    `"BioPrecision System" <bookings@bioprecision.com>`,
-    to:      process.env.NOTIFY_EMAIL,
-    subject,
-    text:    'The BioPrecision roster has been updated after a confirmed payment. See the attached file.',
-    // Note: Resend attachment support requires base64 encoding
-    // Roster file update is logged server-side
-  });
-
-  console.log('✅ Updated roster emailed to BioPrecision.');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EMAIL — Owner notification
-// ─────────────────────────────────────────────────────────────────────────────
-async function sendOwnerNotification(booking, payment, amountCents) {
-  const amount = (Number(amountCents) / 100).toFixed(2);
-
-  await sendEmail({
-    from:    `"BioPrecision Booking" <bookings@bioprecision.com>`,
-    to:      process.env.NOTIFY_EMAIL,
-    subject: `New Booking — ${booking.name} | ${booking.session}`,
-    html: `
-      <div style="font-family:sans-serif;max-width:560px">
-        <div style="background:#011244;color:#fff;padding:16px 20px;border-radius:8px 8px 0 0">
-          <h2 style="margin:0;font-size:18px">New BioPrecision Session Booked</h2>
-        </div>
-        <div style="border:1px solid #E5E7EB;border-top:none;border-radius:0 0 8px 8px;padding:20px">
-          <table style="font-size:14px;border-collapse:collapse;width:100%">
-            <tr><td style="padding:6px 0;color:#6B7280;width:140px">Athlete / Coach</td><td><strong>${booking.name}</strong></td></tr>
-            <tr><td style="padding:6px 0;color:#6B7280">Email</td><td>${booking.email}</td></tr>
-            <tr><td style="padding:6px 0;color:#6B7280">Phone</td><td>${booking.phone || '—'}</td></tr>
-            <tr><td style="padding:6px 0;color:#6B7280">Level</td><td>${booking.level || '—'}</td></tr>
-            <tr><td style="padding:6px 0;color:#6B7280">Session</td><td>${booking.session}</td></tr>
-            <tr><td style="padding:6px 0;color:#6B7280">Lab side</td><td>${booking.side || '—'}</td></tr>
-            <tr><td style="padding:6px 0;color:#6B7280">Date & Time</td><td>${booking.dateTime || 'Remote / Team TBD'}</td></tr>
-            <tr><td style="padding:6px 0;color:#6B7280">Referred by</td><td>${booking.referral || '—'}</td></tr>
-            <tr><td style="padding:6px 0;color:#6B7280">Amount Paid</td><td><strong style="color:#011244">$${amount}</strong></td></tr>
-            <tr><td style="padding:6px 0;color:#6B7280">Square Payment ID</td><td style="font-size:12px;color:#9CA3AF">${payment.id}</td></tr>
-            <tr><td style="padding:6px 0;color:#6B7280">Receipt</td><td><a href="${payment.receiptUrl}" style="color:#011244">View Square receipt</a></td></tr>
-          </table>
-          <hr style="border:none;border-top:1px solid #E5E7EB;margin:16px 0">
-          <p style="font-size:12px;color:#9CA3AF;margin:0">Monday.com event request and Excel roster have been updated automatically.</p>
-        </div>
-      </div>
-    `,
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// EMAIL — Client confirmation
-// ─────────────────────────────────────────────────────────────────────────────
-async function sendClientConfirmation(booking, payment, amountCents) {
-  const amount    = (Number(amountCents) / 100).toFixed(2);
-  const firstName = booking.firstName || booking.name?.split(' ')[0] || 'Athlete';
-  const isTeam    = booking.clientType === 'team';
-  const isRemote  = booking.sessionType === 'remote';
-
-  const dateTimeRow = (isTeam || isRemote)
-    ? `<tr><td style="padding:6px 0;color:#6B7280;width:130px">Scheduling</td><td>${isTeam ? 'BioPrecision will contact you within 24 hrs' : 'Calendar invite & video call link incoming'}</td></tr>`
-    : `<tr><td style="padding:6px 0;color:#6B7280">Date & Time</td><td><strong>${booking.dateTime}</strong></td></tr>`;
-
-  await sendEmail({
-    from:    `"BioPrecision" <bookings@bioprecision.com>`,
-    to:      booking.email,
-    subject: `You're booked! — BioPrecision Session Confirmation`,
-    html: `
-      <div style="font-family:sans-serif;max-width:520px">
-        <div style="background:#011244;color:#fff;padding:16px 20px;border-radius:8px 8px 0 0">
-          <h2 style="margin:0;font-size:18px">You're booked at BioPrecision!</h2>
-        </div>
-        <div style="border:1px solid #E5E7EB;border-top:none;border-radius:0 0 8px 8px;padding:20px">
-          <p style="font-size:14px;color:#374151;margin-bottom:16px">Hi ${firstName}, your session has been confirmed and payment received. Here's your booking summary:</p>
-          <table style="font-size:14px;border-collapse:collapse;width:100%">
-            <tr><td style="padding:6px 0;color:#6B7280;width:130px">Session</td><td><strong>${booking.session}</strong></td></tr>
-            ${dateTimeRow}
-            <tr><td style="padding:6px 0;color:#6B7280">Amount Paid</td><td><strong style="color:#011244">$${amount}</strong></td></tr>
-            <tr><td style="padding:6px 0;color:#6B7280">Receipt</td><td><a href="${payment.receiptUrl}" style="color:#011244">View your Square receipt</a></td></tr>
-          </table>
-          <hr style="border:none;border-top:1px solid #E5E7EB;margin:16px 0">
-          <p style="font-size:13px;color:#6B7280;margin:0">
-            BioPrecision LLC · WVU Baseball Biomechanics and Performance Center<br>
-            2040 Gyorko Dr, Morgantown, WV 26534 · bioprecision.com
-          </p>
-        </div>
-      </div>
-    `,
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /api/team/request
-// Fires when a team client submits their booking request (no payment yet).
-// Sends a notification email to BioPrecision and a confirmation to the coach.
-// ─────────────────────────────────────────────────────────────────────────────
-app.post('/api/team/request', async (req, res) => {
-  const { booking } = req.body;
-  if (!booking) return res.status(400).json({ success: false, error: 'Missing booking data.' });
-
-  try {
-    // Email to BioPrecision owner
-    await sendEmail({
-      from:    `"BioPrecision Booking" <bookings@bioprecision.com>`,
-      to:      process.env.NOTIFY_EMAIL,
-      subject: `New Team Booking Request — ${booking.teamName || booking.name}`,
-      html: `
-        <div style="font-family:sans-serif;max-width:560px">
-          <div style="background:#011244;color:#fff;padding:16px 20px;border-radius:8px 8px 0 0">
-            <h2 style="margin:0;font-size:18px">⚡ New Team Booking Request</h2>
-          </div>
-          <div style="border:1px solid #E5E7EB;border-top:none;border-radius:0 0 8px 8px;padding:20px">
-            <p style="font-size:14px;color:#374151;margin-bottom:16px">A team has submitted a booking request. Contact them to confirm a date and schedule their session.</p>
-            <table style="font-size:14px;border-collapse:collapse;width:100%">
-              <tr><td style="padding:6px 0;color:#6B7280;width:160px">Coach / Contact</td><td><strong>${booking.name}</strong></td></tr>
-              <tr><td style="padding:6px 0;color:#6B7280">Email</td><td><a href="mailto:${booking.email}" style="color:#011244">${booking.email}</a></td></tr>
-              <tr><td style="padding:6px 0;color:#6B7280">Phone</td><td>${booking.phone || '—'}</td></tr>
-              <tr><td style="padding:6px 0;color:#6B7280">Team / Organization</td><td>${booking.teamName || booking.teamSchool || '—'}</td></tr>
-              <tr><td style="padding:6px 0;color:#6B7280">Level</td><td>${booking.level || '—'}</td></tr>
-              <tr><td style="padding:6px 0;color:#6B7280">Service requested</td><td>${booking.session || '—'}</td></tr>
-              <tr><td style="padding:6px 0;color:#6B7280">Service type</td><td>${booking.serviceType || '—'}</td></tr>
-              <tr><td style="padding:6px 0;color:#6B7280">Referred by</td><td>${booking.referral || '—'}</td></tr>
-              <tr><td style="padding:6px 0;color:#6B7280">Goals / notes</td><td>${booking.goals || '—'}</td></tr>
-            </table>
-            <hr style="border:none;border-top:1px solid #E5E7EB;margin:16px 0">
-            <p style="font-size:12px;color:#9CA3AF;margin:0">Reply directly to <a href="mailto:${booking.email}" style="color:#011244">${booking.email}</a> to follow up with this team.</p>
-          </div>
-        </div>
-      `,
+async function runTestCharge(){
+  const btn=event.target.closest('button');
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Sending test emails...';
+  try{
+    const fname=document.getElementById('fname').value.trim()||'Test';
+    const lname=document.getElementById('lname').value.trim()||'User';
+    const email=document.getElementById('email').value.trim()||process.env?.NOTIFY_EMAIL||'test@test.com';
+    const priceStr=document.getElementById('payAmount').textContent.replace(/[^0-9.]/g,'')||'0';
+    const amountCents=Math.round(parseFloat(priceStr)*100)||0;
+    const response=await fetch('/api/test/charge',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        amountMoney:{amount:amountCents,currency:'USD'},
+        booking:{
+          name:fname+' '+lname,firstName:fname,lastName:lname,
+          email,phone:document.getElementById('phone').value||'—',
+          weight:document.getElementById('weight').value,
+          level:document.getElementById('level').value,
+          referral:document.getElementById('referral').value,
+          session:document.getElementById('sumSession').textContent,
+          serviceType:selServiceType,side:selSide,
+          sessionType:selHittingData?.type||selPitchingData?.type||'tuneup',
+          clientType:selClientType,
+          dateTime:document.getElementById('sumDateTime')?.textContent||'Test booking',
+          date:'',time:'',
+        }
+      })
     });
-
-    // Confirmation email to coach
-    await sendEmail({
-      from:    `"BioPrecision" <bookings@bioprecision.com>`,
-      to:      booking.email,
-      subject: `Team Booking Request Received — BioPrecision`,
-      html: `
-        <div style="font-family:sans-serif;max-width:520px">
-          <div style="background:#011244;color:#fff;padding:16px 20px;border-radius:8px 8px 0 0">
-            <h2 style="margin:0;font-size:18px">Team Booking Request Received</h2>
-          </div>
-          <div style="border:1px solid #E5E7EB;border-top:none;border-radius:0 0 8px 8px;padding:20px">
-            <p style="font-size:14px;color:#374151;margin-bottom:16px">Hi ${booking.name.split(' ')[0]}, we've received your team booking request and will be in touch within 24 hours to confirm your date, time, and session details.</p>
-            <table style="font-size:14px;border-collapse:collapse;width:100%">
-              <tr><td style="padding:6px 0;color:#6B7280;width:130px">Service</td><td><strong>${booking.session || '—'}</strong></td></tr>
-              <tr><td style="padding:6px 0;color:#6B7280">Type</td><td>${booking.serviceType || '—'}</td></tr>
-            </table>
-            <hr style="border:none;border-top:1px solid #E5E7EB;margin:16px 0">
-            <p style="font-size:13px;color:#6B7280;margin:0">
-              BioPrecision LLC · WVU Baseball Biomechanics and Performance Center<br>
-              2040 Gyorko Dr, Morgantown, WV 26534 · bioprecision.com
-            </p>
-          </div>
-        </div>
-      `,
-    });
-
-    console.log('✅ Team request emails sent for:', booking.name);
-    res.json({ success: true });
-
-  } catch (error) {
-    console.error('❌ Team request email error:', error.message);
-    console.error('   Full error:', JSON.stringify(error, null, 2));
-    res.status(500).json({ success: false, error: error.message });
+    const result=await response.json();
+    if(result.success){
+      alert('✅ Test emails sent successfully! Check your inbox at wjhendrick@bioprecision.com');
+      btn.innerHTML='<i class="ti ti-check"></i> Emails sent!';
+      btn.style.background='#16A34A';
+    } else {
+      throw new Error(result.error);
+    }
+  } catch(err){
+    alert('❌ Test failed: '+err.message);
+    btn.disabled=false;
+    btn.innerHTML='<i class="ti ti-send"></i> Send test emails (no charge)';
   }
-});
+}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// START SERVER
-// ─────────────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 8080;
+function goStep(n){
+  if(n===1){
+    const f=document.getElementById('fname').value.trim();
+    const l=document.getElementById('lname').value.trim();
+    const e=document.getElementById('email').value.trim();
+    const p=document.getElementById('phone').value.trim();
+    const dob=document.getElementById('dob').value.trim();
+    const age=document.getElementById('age').value.trim();
+    const hFt=document.getElementById('heightFt').value;
+    const hIn=document.getElementById('heightIn').value;
+    const wt=document.getElementById('weight').value.trim();
+    const tm=document.getElementById('teamSchool').value.trim();
+    const lv=document.getElementById('level').value;
+    const pos=document.getElementById('position').value;
+    const thr=document.getElementById('throws').value;
+    const bat=document.getElementById('bats').value;
+    const ref=document.getElementById('referral').value;
+    const goals=document.getElementById('goals').value.trim();
+    if(!f||!l||!e||!p||!dob||!age||!hFt||!hIn||!wt||!tm||!lv||!pos||!thr||!bat||!ref||!goals){
+      alert('Please fill in all required fields before continuing.');return;
+    }
+  }
+  if(n===2){
+    if(!selClientType){alert('Please select Individual or Team.');return;}
+    if(!selServiceType){alert('Please select Hitting, Pitching, or Both.');return;}
+    if(selClientType==='team'){
+      const key='team-'+(selServiceType==='hitting'?'hit':selServiceType==='pitching'?'pitch':'both');
+      if(!teamSelections[key]||teamSelections[key].size===0){alert('Please select at least one team service.');return;}
+    } else {
+      if(selServiceType==='hitting'&&selHittingIdx===null){alert('Please select a hitting session.');return;}
+      if(selServiceType==='pitching'&&selPitchingIdx===null){alert('Please select a pitching session.');return;}
+      if(selServiceType==='both'&&(selHittingIdx===null||selPitchingIdx===null)){alert('Please select both a hitting and pitching session.');return;}
+    }
+    setupStep3();
+  }
+  if(n===3){
+    if(scheduleMode==='live'&&(selDateIdx===null||!selTime)){alert('Please select a date and time slot.');return;}
+    if(scheduleMode==='team'){
+      // Team bookings skip payment — navigate to success directly
+      document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+      document.querySelectorAll('.bp-step').forEach(el=>el.classList.add('done'));
+      document.getElementById('secDone').classList.add('active');
+      showSuccessScreen();
+      return;
+    }
+    buildConfirm();setTimeout(initSquare,300);
+  }
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.bp-step').forEach((el,i)=>{el.classList.remove('active','done');if(i<n)el.classList.add('done');else if(i===n)el.classList.add('active');});
+  document.getElementById(n<4?'sec'+n:'secDone').classList.add('active');
+  window.scrollTo(0,0);
+}
 
-// Health check for Railway
-app.get('/health', (req, res) => res.status(200).send('OK'));
+const style=document.createElement('style');style.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';document.head.appendChild(style);
 
-// Serve booking form
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🚀 BioPrecision server running on port ${PORT}`);
-  console.log(`   Square location: ${process.env.SQUARE_LOCATION_ID}`);
-  console.log(`   SMTP host: ${process.env.SMTP_HOST}`);
-  console.log(`   SMTP user: ${process.env.SMTP_USER}`);
-  console.log(`   SMTP pass set: ${process.env.SMTP_PASS ? 'YES (' + process.env.SMTP_PASS.length + ' chars)' : 'NO - MISSING'}`);
-  console.log(`   Notifications → ${process.env.NOTIFY_EMAIL}\n`);
-
-  console.log('✅ Resend email service configured');
-});
+renderOpts(INDIV_HITTING,'opts-indiv-hitting','indiv-hit',false);
+renderOpts(INDIV_PITCHING,'opts-indiv-pitching','indiv-pitch',false);
+renderOpts(INDIV_HITTING,'opts-both-hit','both-hit',false);
+renderOpts(INDIV_PITCHING,'opts-both-pitch','both-pitch',false);
+renderOpts(TEAM_HITTING,'opts-team-hitting','team-hit',true);
+renderOpts(TEAM_PITCHING,'opts-team-pitching','team-pitch',true);
+renderOpts(TEAM_BOTH,'opts-team-both','team-both',true);
+</script>
+</body>
+</html>
