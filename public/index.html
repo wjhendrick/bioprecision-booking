@@ -719,7 +719,7 @@ function toggleAdmin(){
 
 function getScheduleMode(){if(selClientType==='team')return 'team';const types=[selHittingData?.type,selPitchingData?.type].filter(Boolean);if(types.length&&types.every(t=>t==='remote'))return 'remote';return 'live';}
 
-function setupStep3(){scheduleMode=getScheduleMode();document.getElementById('teamBypass').style.display='none';document.getElementById('remoteBypass').style.display='none';document.getElementById('liveSchedule').style.display='none';if(scheduleMode==='team'){document.getElementById('teamBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="We'll reach out to schedule your team session.";}else if(scheduleMode==='remote'){document.getElementById('remoteBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="Your remote session doesn't require a lab visit.";}else{document.getElementById('liveSchedule').style.display='block';document.getElementById('schedSub').textContent="Select an available date and time below.";const bc=selSide==='both'?'both':selSide,bl=selSide==='both'?'Two-Way — Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';document.getElementById('schedBadge').innerHTML=`<span class="sched-badge ${bc}"><i class="ti ti-${selSide==='pitching'?'wind':'ball-baseball'}"></i> ${bl}</span>`;buildAdminPanel();buildDatesUI();selDateIdx=null;selTime=null;document.getElementById('slotSection').style.display='none';document.getElementById('noDateMsg').style.display='block';document.getElementById('btnStep3').disabled=true;}}
+function setupStep3(){scheduleMode=getScheduleMode();document.getElementById('teamBypass').style.display='none';document.getElementById('remoteBypass').style.display='none';document.getElementById('liveSchedule').style.display='none';if(scheduleMode==='team'){document.getElementById('teamBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="We'll reach out to schedule your team session.";document.getElementById('btnStep3').innerHTML='Submit request <i class="ti ti-send"></i>';}else if(scheduleMode==='remote'){document.getElementById('remoteBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="Your remote session doesn't require a lab visit.";document.getElementById('btnStep3').innerHTML='Continue <i class="ti ti-arrow-right"></i>';}else{document.getElementById('liveSchedule').style.display='block';document.getElementById('schedSub').textContent="Select an available date and time below.";document.getElementById('btnStep3').innerHTML='Continue <i class="ti ti-arrow-right"></i>';const bc=selSide==='both'?'both':selSide,bl=selSide==='both'?'Two-Way — Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';document.getElementById('schedBadge').innerHTML=`<span class="sched-badge ${bc}"><i class="ti ti-${selSide==='pitching'?'wind':'ball-baseball'}"></i> ${bl}</span>`;buildAdminPanel();buildDatesUI();selDateIdx=null;selTime=null;document.getElementById('slotSection').style.display='none';document.getElementById('noDateMsg').style.display='block';document.getElementById('btnStep3').disabled=true;}}
 
 function buildConfirm(){
   document.getElementById('sumName').textContent=document.getElementById('fname').value+' '+document.getElementById('lname').value;
@@ -891,7 +891,14 @@ function goStep(n){
     }
     setupStep3();
   }
-  if(n===3){if(scheduleMode==='live'&&(selDateIdx===null||!selTime)){alert('Please select a date and time slot.');return;}buildConfirm();setTimeout(initSquare,300);}
+  if(n===3){
+    if(scheduleMode==='live'&&(selDateIdx===null||!selTime)){alert('Please select a date and time slot.');return;}
+    if(scheduleMode==='team'){
+      // Team bookings skip payment — fire request email and go straight to success
+      showSuccessScreen();return;
+    }
+    buildConfirm();setTimeout(initSquare,300);
+  }
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.bp-step').forEach((el,i)=>{el.classList.remove('active','done');if(i<n)el.classList.add('done');else if(i===n)el.classList.add('active');});
   document.getElementById(n<4?'sec'+n:'secDone').classList.add('active');
