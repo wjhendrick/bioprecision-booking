@@ -383,7 +383,15 @@ function renderDetail(dateKey,year,month,day){
   } else {
     [
       {label:'<i class="ti ti-ban"></i> Close day',cls:'red',fn:()=>{closedDates.add(dateKey);saveData();buildCalendar();renderDetail(dateKey,year,month,day);}},
-      {label:'Block all (both sides)',cls:'',fn:()=>{TIMES.forEach(t=>{if(!bookedSlots[dateKey]?.[t])setSlotState(dateKey,t,true,true);});saveData();buildCalendar();renderDetail(dateKey,year,month,day);}},
+      {label:'Block all (both sides)',cls:'',fn:()=>{
+        if(!blockedSlots[dateKey]) blockedSlots[dateKey]={};
+        TIMES.forEach(t=>{
+          if(!bookedSlots[dateKey]?.[t]){
+            blockedSlots[dateKey][t]={hit:true,pitch:true};
+          }
+        });
+        saveData();buildCalendar();renderDetail(dateKey,year,month,day);
+      }},
       {label:'Unblock all',cls:'',fn:()=>{blockedSlots[dateKey]={};saveData();buildCalendar();renderDetail(dateKey,year,month,day);}},
     ].forEach(({label,cls,fn})=>{
       const btn=document.createElement('button'); btn.className='det-btn'+(cls?' '+cls:'');
