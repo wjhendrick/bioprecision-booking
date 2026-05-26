@@ -820,9 +820,33 @@ function showPayStatus(msg,isError){
   el.textContent=msg;el.style.color=isError?'#EF4444':'#065F46';el.style.display='block';
 }
 
-function showSuccessScreen(){
+async function showSuccessScreen(){
   const email=document.getElementById('email').value;
   const isTeam=scheduleMode==='team',isRemote=scheduleMode==='remote';
+
+  // Fire team request email if this is a team booking
+  if(isTeam){
+    try{
+      const key='team-'+(selServiceType==='hitting'?'hit':selServiceType==='pitching'?'pitch':'both');
+      const src=selServiceType==='hitting'?TEAM_HITTING:selServiceType==='pitching'?TEAM_PITCHING:TEAM_BOTH;
+      const selectedSessions=teamSelections[key]?[...teamSelections[key]].map(i=>src[i].name).join(' + '):'—';
+      await fetch('/api/team/request',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({booking:{
+          name:document.getElementById('fname').value+' '+document.getElementById('lname').value,
+          email,
+          phone:document.getElementById('phone').value,
+          teamName:document.getElementById('teamSchool').value,
+          level:document.getElementById('level').value,
+          referral:document.getElementById('referral').value,
+          goals:document.getElementById('goals').value,
+          session:selectedSessions,
+          serviceType:selServiceType==='both'?'Two-Way':selServiceType==='hitting'?'Hitting':'Pitching',
+        }})
+      });
+    }catch(e){console.error('Team request email failed:',e);}
+  }
   document.getElementById('doneTitle').textContent=isTeam?'Request received!':'You\'re booked!';
   document.getElementById('doneMsg').textContent=isTeam?'Your team booking request has been submitted. Our staff will contact you within 24 hours.':isRemote?'Your remote session is confirmed. A calendar invite and video call link are on the way.':'Your session is confirmed and payment has been received. See you at the lab!';
   const steps=isTeam?[{icon:'ti-mail',text:`Confirmation sent to <strong>${email}</strong>`},{icon:'ti-phone',text:'BioPrecision will contact you within 24 hrs to schedule'},{icon:'ti-file-invoice',text:'Invoice will be sent once your session is confirmed'},{icon:'ti-shield-check',text:'Signed waiver copy sent to your email'}]:isRemote?[{icon:'ti-mail',text:`Confirmation sent to <strong>${email}</strong>`},{icon:'ti-receipt',text:'Square payment receipt emailed to you'},{icon:'ti-video',text:'Calendar invite & video call link sent to your email'},{icon:'ti-shield-check',text:'Signed waiver & data consent sent to your email'}]:[{icon:'ti-mail',text:`Booking confirmation sent to <strong>${email}</strong>`},{icon:'ti-receipt',text:'Square payment receipt emailed to you'},{icon:'ti-calendar',text:'Session added to the BioPrecision schedule'},{icon:'ti-shield-check',text:'Signed waiver & data consent sent to your email'}];
