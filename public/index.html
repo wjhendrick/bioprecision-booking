@@ -544,9 +544,23 @@ let selClientType=null,selServiceType=null,selHittingIdx=null,selPitchingIdx=nul
 let selSide=null,selDateIdx=null,selTime=null,dates=[];
 let scheduleMode='live';
 let dayAvailability={0:true,1:true,2:true,3:true,4:true,5:true,6:true};
-let blockedSlots={}; // { 'YYYY-MM-DD': { 'HH:MM AM': true } }
-let bookedSlots={}; // { 'YYYY-MM-DD': { 'HH:MM AM': true } }
-let adminSelectedDow=1; // default to Monday
+let blockedSlots={}; // { 'YYYY-MM-DD': { 'HH:MM AM': { hit: bool, pitch: bool } } }
+let bookedSlots={};
+let closedDates=new Set();
+let adminSelectedDow=1;
+
+// Fetch availability from server
+async function fetchAvailability(){
+  try {
+    const res = await fetch('/api/availability');
+    const data = await res.json();
+    if(data.closedDates) {
+      closedDates = new Set(data.closedDates);
+      // Update dayAvailability based on closed specific dates
+    }
+    if(data.blockedSlots) blockedSlots = data.blockedSlots;
+  } catch(e){ console.error('Could not load availability:', e); }
+}
 const takenSlots={};
 let adminVisible=false,isMinor=false;
 let squareCard=null,squarePayments=null,squareReady=false;
@@ -619,10 +633,32 @@ function generateTimes(type){const slots=[],dur=type==='assessment'?90:60;let h=
 function buildDates(){dates=[];const today=new Date();for(let i=1;i<=21;i++){const d=new Date(today);d.setDate(today.getDate()+i);dates.push(d);}}
 function formatDate(d){return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}
 
-function buildDatesUI(){buildDates();const row=document.getElementById('dateRow');row.innerHTML='';dates.forEach((d,i)=>{const dow=d.getDay(),isClosed=!dayAvailability[dow];const btn=document.createElement('div');btn.className='date-btn'+(isClosed?' closed-day':'');btn.innerHTML=`<div class="d-name">${d.toLocaleDateString('en-US',{weekday:'short'})}</div><div class="d-num">${d.getDate()}</div><div class="d-mon">${d.toLocaleDateString('en-US',{month:'short'})}</div>`;if(!isClosed){btn.onclick=()=>{selDateIdx=i;selTime=null;document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');buildSlotsUI();document.getElementById('slotSection').style.display='block';document.getElementById('noDateMsg').style.display='none';document.getElementById('btnStep3').disabled=true;};}row.appendChild(btn);});}
+function dateStr(d){ return d.toISOString().split('T')[0]; }
+function buildDatesUI(){buildDates();const row=document.getElementById('dateRow');row.innerHTML='';dates.forEach((d,i)=>{const dow=d.getDay();const ds=dateStr(d);const isClosed=!dayAvailability[dow]||closedDates.has(ds);const btn=document.createElement('div');btn.className='date-btn'+(isClosed?' closed-day':'');btn.innerHTML=`<div class="d-name">${d.toLocaleDateString('en-US',{weekday:'short'})}</div><div class="d-num">${d.getDate()}</div><div class="d-mon">${d.toLocaleDateString('en-US',{month:'short'})}</div>`;if(!isClosed){btn.onclick=()=>{selDateIdx=i;selTime=null;document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');buildSlotsUI();document.getElementById('slotSection').style.display='block';document.getElementById('noDateMsg').style.display='none';document.getElementById('btnStep3').disabled=true;};}row.appendChild(btn);});}
 
-function buildSlotsUI(){const dur=selHittingData&&selHittingData.type==='assessment'||selPitchingData&&selPitchingData.type==='assessment'?'assessment':'tuneup';const times=generateTimes(dur);const side=selSide==='both'?'hitting':selSide;const sideLabel=selSide==='both'?'Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';const grid=document.getElementById('slotGrid');grid.innerHTML='';document.getElementById('slotsLabel').textContent=`Available ${dur==='assessment'?'90-min':'60-min'} slots — ${sideLabel}:`;times.forEach(t=>{const ds2=dates[selDateIdx]?dates[selDateIdx].toISOString().split('T')[0]:'';
-        const tk=!!(takenSlots[`${selDateIdx}-${side}-${t}`])||(blockedSlots[ds2]&&blockedSlots[ds2][t]);const btn=document.createElement('button');btn.className='slot-btn'+(tk?' taken':'');btn.innerHTML=`${t}<div class="slot-sub">${dur==='assessment'?'90 min':'60 min'}</div>`;if(!tk){btn.onclick=()=>{document.querySelectorAll('.slot-btn').forEach(s=>s.classList.remove('selected'));btn.classList.add('selected');selTime=t;document.getElementById('btnStep3').disabled=false;};}grid.appendChild(btn);});}
+function buildSlotsUI(){
+  const dur=selHittingData&&selHittingData.type==='assessment'||selPitchingData&&selPitchingData.type==='assessment'?'assessment':'tuneup';
+  const times=generateTimes(dur);
+  const side=selSide==='both'?'hitting':selSide;
+  const sideLabel=selSide==='both'?'Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';
+  const grid=document.getElementById('slotGrid');grid.innerHTML='';
+  document.getElementById('slotsLabel').textContent=`Available ${dur==='assessment'?'90-min':'60-min'} slots — ${sideLabel}:`;
+  const ds=dates[selDateIdx]?dateStr(dates[selDateIdx]):'';
+  times.forEach(t=>{
+    const slotState=blockedSlots[ds]&&blockedSlots[ds][t];
+    // Check if this side is blocked
+    let isBlocked=false;
+    if(slotState){
+      if(selSide==='hitting'||selSide==='both') isBlocked=isBlocked||slotState.hit;
+      if(selSide==='pitching'||selSide==='both') isBlocked=isBlocked||slotState.pitch;
+    }
+    const btn=document.createElement('button');
+    btn.className='slot-btn'+(isBlocked?' taken':'');
+    btn.innerHTML=`${t}<div class="slot-sub">${dur==='assessment'?'90 min':'60 min'}</div>`;
+    if(!isBlocked){btn.onclick=()=>{document.querySelectorAll('.slot-btn').forEach(s=>s.classList.remove('selected'));btn.classList.add('selected');selTime=t;document.getElementById('btnStep3').disabled=false;};}
+    grid.appendChild(btn);
+  });
+}
 
 function buildAdminPanel(){
   const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -729,7 +765,7 @@ function toggleAdmin(){
 
 function getScheduleMode(){if(selClientType==='team')return 'team';const types=[selHittingData?.type,selPitchingData?.type].filter(Boolean);if(types.length&&types.every(t=>t==='remote'))return 'remote';return 'live';}
 
-function setupStep3(){scheduleMode=getScheduleMode();document.getElementById('teamBypass').style.display='none';document.getElementById('remoteBypass').style.display='none';document.getElementById('liveSchedule').style.display='none';if(scheduleMode==='team'){document.getElementById('teamBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="We'll reach out to schedule your team session.";document.getElementById('btnStep3').innerHTML='Submit request <i class="ti ti-send"></i>';}else if(scheduleMode==='remote'){document.getElementById('remoteBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="Your remote session doesn't require a lab visit.";document.getElementById('btnStep3').innerHTML='Continue <i class="ti ti-arrow-right"></i>';}else{document.getElementById('liveSchedule').style.display='block';document.getElementById('schedSub').textContent="Select an available date and time below.";document.getElementById('btnStep3').innerHTML='Continue <i class="ti ti-arrow-right"></i>';const bc=selSide==='both'?'both':selSide,bl=selSide==='both'?'Two-Way — Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';document.getElementById('schedBadge').innerHTML=`<span class="sched-badge ${bc}"><i class="ti ti-${selSide==='pitching'?'wind':'ball-baseball'}"></i> ${bl}</span>`;buildAdminPanel();buildDatesUI();selDateIdx=null;selTime=null;document.getElementById('slotSection').style.display='none';document.getElementById('noDateMsg').style.display='block';document.getElementById('btnStep3').disabled=true;}}
+async function setupStep3(){await fetchAvailability();scheduleMode=getScheduleMode();document.getElementById('teamBypass').style.display='none';document.getElementById('remoteBypass').style.display='none';document.getElementById('liveSchedule').style.display='none';if(scheduleMode==='team'){document.getElementById('teamBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="We'll reach out to schedule your team session.";document.getElementById('btnStep3').innerHTML='Submit request <i class="ti ti-send"></i>';}else if(scheduleMode==='remote'){document.getElementById('remoteBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="Your remote session doesn't require a lab visit.";document.getElementById('btnStep3').innerHTML='Continue <i class="ti ti-arrow-right"></i>';}else{document.getElementById('liveSchedule').style.display='block';document.getElementById('schedSub').textContent="Select an available date and time below.";document.getElementById('btnStep3').innerHTML='Continue <i class="ti ti-arrow-right"></i>';const bc=selSide==='both'?'both':selSide,bl=selSide==='both'?'Two-Way — Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';document.getElementById('schedBadge').innerHTML=`<span class="sched-badge ${bc}"><i class="ti ti-${selSide==='pitching'?'wind':'ball-baseball'}"></i> ${bl}</span>`;buildAdminPanel();buildDatesUI();selDateIdx=null;selTime=null;document.getElementById('slotSection').style.display='none';document.getElementById('noDateMsg').style.display='block';document.getElementById('btnStep3').disabled=true;}}
 
 function buildConfirm(){
   document.getElementById('sumName').textContent=document.getElementById('fname').value+' '+document.getElementById('lname').value;
