@@ -185,6 +185,7 @@
       </div>
     </div>
     <div class="topbar-right">
+      <div id="saveIndicator" style="opacity:0;transition:opacity 0.5s;background:#16A34A;border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px;"><i class="ti ti-check" style="font-size:11px"></i> Saved</div>
       <div class="topbar-badge"><i class="ti ti-lock" style="font-size:11px"></i> Admin session</div>
       <button class="logout-btn" onclick="logout()">Sign out</button>
     </div>
@@ -253,12 +254,13 @@ viewMonth = today.getMonth();
 
 function dk(y,m,d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
-function checkLogin(){
+async function checkLogin(){
   const pwd = document.getElementById('pwdInput').value;
   if(pwd===ADMIN_PASSWORD){
+    adminPassword = pwd;
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('dashboard').style.display='block';
-    loadData();
+    await loadData();
     buildCalendar();
   } else {
     document.getElementById('loginError').style.display='block';
@@ -268,18 +270,39 @@ function checkLogin(){
 
 function logout(){ saveData(); document.getElementById('loginScreen').style.display='flex'; document.getElementById('dashboard').style.display='none'; document.getElementById('pwdInput').value=''; }
 
-function saveData(){
+let adminPassword = '';
+
+async function saveData(){
   try {
-    localStorage.setItem('bp_closed2', JSON.stringify([...closedDates]));
-    localStorage.setItem('bp_blocked2', JSON.stringify(blockedSlots));
-  } catch(e){}
+    const res = await fetch('/api/availability', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        password: adminPassword,
+        closedDates: [...closedDates],
+        blockedSlots: blockedSlots,
+      })
+    });
+    const result = await res.json();
+    if(!result.success) console.error('Save failed:', result.error);
+    else showSaveIndicator();
+  } catch(e){ console.error('Save error:', e); }
 }
 
-function loadData(){
+async function loadData(){
   try {
-    const c=localStorage.getItem('bp_closed2'); if(c) closedDates=new Set(JSON.parse(c));
-    const b=localStorage.getItem('bp_blocked2'); if(b) blockedSlots=JSON.parse(b);
-  } catch(e){}
+    const res = await fetch('/api/availability');
+    const data = await res.json();
+    if(data.closedDates) closedDates = new Set(data.closedDates);
+    if(data.blockedSlots) blockedSlots = data.blockedSlots;
+  } catch(e){ console.error('Load error:', e); }
+}
+
+function showSaveIndicator(){
+  const el = document.getElementById('saveIndicator');
+  if(!el) return;
+  el.style.opacity='1';
+  setTimeout(()=>{ el.style.opacity='0'; }, 2000);
 }
 
 function getSlotState(dateKey, time){
