@@ -58,6 +58,51 @@ async function sendEmail({ from, to, subject, html }) {
 // PATHS
 // ─────────────────────────────────────────────────────────────────────────────
 const ROSTER_PATH = path.join(__dirname, 'BioPrecision_Roster.xlsx');
+const AVAILABILITY_PATH = path.join(__dirname, 'availability.json');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AVAILABILITY STORE
+// Persists blocked slots and closed dates to a JSON file on the server.
+// Structure: { closedDates: [...], blockedSlots: { 'YYYY-MM-DD': { 'HH:MM AM': { hit: bool, pitch: bool } } } }
+// ─────────────────────────────────────────────────────────────────────────────
+function loadAvailability() {
+  try {
+    if (fs.existsSync(AVAILABILITY_PATH)) {
+      return JSON.parse(fs.readFileSync(AVAILABILITY_PATH, 'utf8'));
+    }
+  } catch(e) { console.error('Error loading availability:', e.message); }
+  return { closedDates: [], blockedSlots: {} };
+}
+
+function saveAvailability(data) {
+  try {
+    fs.writeFileSync(AVAILABILITY_PATH, JSON.stringify(data, null, 2));
+  } catch(e) { console.error('Error saving availability:', e.message); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/availability
+// Returns current blocked slots and closed dates — called by booking form
+// ─────────────────────────────────────────────────────────────────────────────
+app.get('/api/availability', (req, res) => {
+  const data = loadAvailability();
+  res.json({ success: true, ...data });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/availability
+// Admin saves blocked slots and closed dates — called by admin dashboard
+// Requires admin password in request body
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/availability', (req, res) => {
+  const { password, closedDates, blockedSlots } = req.body;
+  if (password !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ success: false, error: 'Unauthorized.' });
+  }
+  saveAvailability({ closedDates, blockedSlots });
+  console.log('✅ Availability updated by admin');
+  res.json({ success: true });
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/square/charge
