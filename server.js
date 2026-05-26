@@ -364,10 +364,84 @@ async function sendClientConfirmation(booking, payment, amountCents) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/team/request
+// Fires when a team client submits their booking request (no payment yet).
+// Sends a notification email to BioPrecision and a confirmation to the coach.
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/team/request', async (req, res) => {
+  const { booking } = req.body;
+  if (!booking) return res.status(400).json({ success: false, error: 'Missing booking data.' });
+
+  try {
+    // Email to BioPrecision owner
+    await transporter.sendMail({
+      from:    `"BioPrecision Booking" <${process.env.SMTP_USER}>`,
+      to:      process.env.NOTIFY_EMAIL,
+      subject: `New Team Booking Request — ${booking.teamName || booking.name}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px">
+          <div style="background:#011244;color:#fff;padding:16px 20px;border-radius:8px 8px 0 0">
+            <h2 style="margin:0;font-size:18px">⚡ New Team Booking Request</h2>
+          </div>
+          <div style="border:1px solid #E5E7EB;border-top:none;border-radius:0 0 8px 8px;padding:20px">
+            <p style="font-size:14px;color:#374151;margin-bottom:16px">A team has submitted a booking request. Contact them to confirm a date and schedule their session.</p>
+            <table style="font-size:14px;border-collapse:collapse;width:100%">
+              <tr><td style="padding:6px 0;color:#6B7280;width:160px">Coach / Contact</td><td><strong>${booking.name}</strong></td></tr>
+              <tr><td style="padding:6px 0;color:#6B7280">Email</td><td><a href="mailto:${booking.email}" style="color:#011244">${booking.email}</a></td></tr>
+              <tr><td style="padding:6px 0;color:#6B7280">Phone</td><td>${booking.phone || '—'}</td></tr>
+              <tr><td style="padding:6px 0;color:#6B7280">Team / Organization</td><td>${booking.teamName || booking.teamSchool || '—'}</td></tr>
+              <tr><td style="padding:6px 0;color:#6B7280">Level</td><td>${booking.level || '—'}</td></tr>
+              <tr><td style="padding:6px 0;color:#6B7280">Service requested</td><td>${booking.session || '—'}</td></tr>
+              <tr><td style="padding:6px 0;color:#6B7280">Service type</td><td>${booking.serviceType || '—'}</td></tr>
+              <tr><td style="padding:6px 0;color:#6B7280">Referred by</td><td>${booking.referral || '—'}</td></tr>
+              <tr><td style="padding:6px 0;color:#6B7280">Goals / notes</td><td>${booking.goals || '—'}</td></tr>
+            </table>
+            <hr style="border:none;border-top:1px solid #E5E7EB;margin:16px 0">
+            <p style="font-size:12px;color:#9CA3AF;margin:0">Reply directly to <a href="mailto:${booking.email}" style="color:#011244">${booking.email}</a> to follow up with this team.</p>
+          </div>
+        </div>
+      `,
+    });
+
+    // Confirmation email to coach
+    await transporter.sendMail({
+      from:    `"BioPrecision" <${process.env.SMTP_USER}>`,
+      to:      booking.email,
+      subject: `Team Booking Request Received — BioPrecision`,
+      html: `
+        <div style="font-family:sans-serif;max-width:520px">
+          <div style="background:#011244;color:#fff;padding:16px 20px;border-radius:8px 8px 0 0">
+            <h2 style="margin:0;font-size:18px">Team Booking Request Received</h2>
+          </div>
+          <div style="border:1px solid #E5E7EB;border-top:none;border-radius:0 0 8px 8px;padding:20px">
+            <p style="font-size:14px;color:#374151;margin-bottom:16px">Hi ${booking.name.split(' ')[0]}, we've received your team booking request and will be in touch within 24 hours to confirm your date, time, and session details.</p>
+            <table style="font-size:14px;border-collapse:collapse;width:100%">
+              <tr><td style="padding:6px 0;color:#6B7280;width:130px">Service</td><td><strong>${booking.session || '—'}</strong></td></tr>
+              <tr><td style="padding:6px 0;color:#6B7280">Type</td><td>${booking.serviceType || '—'}</td></tr>
+            </table>
+            <hr style="border:none;border-top:1px solid #E5E7EB;margin:16px 0">
+            <p style="font-size:13px;color:#6B7280;margin:0">
+              BioPrecision LLC · WVU Baseball Biomechanics and Performance Center<br>
+              2040 Gyorko Dr, Morgantown, WV 26534 · bioprecision.com
+            </p>
+          </div>
+        </div>
+      `,
+    });
+
+    console.log('✅ Team request emails sent for:', booking.name);
+    res.json({ success: true });
+
+  } catch (error) {
+    console.error('❌ Team request email error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // START SERVER
 // ─────────────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 8080;
-app.get('/health', (req, res) => res.status(200).send('OK'));
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🚀 BioPrecision server running on port ${PORT}`);
   console.log(`   Square location: ${process.env.SQUARE_LOCATION_ID}`);
