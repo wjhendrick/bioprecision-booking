@@ -24,12 +24,22 @@ const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ── Upstash Redis (persistent availability storage) ──────────────────────────
-const { Redis } = require('@upstash/redis');
-const redis = new Redis({
-  url:   process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+let redis = null;
 const AVAILABILITY_KEY = 'bp:availability';
+try {
+  const { Redis } = require('@upstash/redis');
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = new Redis({
+      url:   process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+    console.log('✅ Upstash Redis configured');
+  } else {
+    console.warn('⚠️  Upstash Redis credentials missing — availability will not persist');
+  }
+} catch(e) {
+  console.error('❌ Redis setup error:', e.message);
+}
 const axios      = require('axios');
 const XLSX       = require('xlsx');
 const crypto     = require('crypto');
@@ -71,16 +81,24 @@ const ROSTER_PATH = path.join(__dirname, 'BioPrecision_Roster.xlsx');
 // Structure: { closedDates: [...], blockedSlots: { 'YYYY-MM-DD': { 'HH:MM AM': { hit: bool, pitch: bool } } } }
 // ─────────────────────────────────────────────────────────────────────────────
 async function loadAvailability() {
+  if (!redis) return { closedDates: [], blockedSlots: {} };
   try {
-    const data = await redis.get(AVAILABILITY_KEY);
+    const data = await Promise.race([
+      redis.get(AVAILABILITY_KEY),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Redis timeout')), 3000))
+    ]);
     if (data) return typeof data === 'string' ? JSON.parse(data) : data;
   } catch(e) { console.error('Error loading availability from Redis:', e.message); }
   return { closedDates: [], blockedSlots: {} };
 }
 
 async function saveAvailability(data) {
+  if (!redis) { console.warn('⚠️  Redis not available — cannot save availability'); return; }
   try {
-    await redis.set(AVAILABILITY_KEY, JSON.stringify(data));
+    await Promise.race([
+      redis.set(AVAILABILITY_KEY, JSON.stringify(data)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Redis timeout')), 3000))
+    ]);
   } catch(e) { console.error('Error saving availability to Redis:', e.message); }
 }
 
