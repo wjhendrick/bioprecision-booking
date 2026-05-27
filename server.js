@@ -329,12 +329,29 @@ async function updateRosterExcel(booking) {
 // ─────────────────────────────────────────────────────────────────────────────
 // EMAIL — Owner notification
 // ─────────────────────────────────────────────────────────────────────────────
+function getNotifyEmails(booking) {
+  // Always notify the owner
+  const emails = [process.env.NOTIFY_EMAIL];
+  if (booking.clientType === 'individual') {
+    const side = booking.side || '';
+    if (side === 'hitting' || side === 'both') {
+      emails.push('mcannon@bioprecision.com'); // Micah Cannon — hitting
+    }
+    if (side === 'pitching' || side === 'both') {
+      emails.push('jemerson@bioprecision.com'); // Jacob Emerson — pitching
+    }
+  }
+  // Deduplicate and filter empty
+  return [...new Set(emails.filter(Boolean))];
+}
+
 async function sendOwnerNotification(booking, payment, amountCents) {
   const amount = (Number(amountCents) / 100).toFixed(2);
+  const toEmails = getNotifyEmails(booking);
 
   await sendEmail({
     from:    `"BioPrecision Booking" <bookings@bioprecision.com>`,
-    to:      process.env.NOTIFY_EMAIL,
+    to:      toEmails,
     subject: `New Booking — ${booking.name} | ${booking.session}`,
     html: `
       <div style="font-family:sans-serif;max-width:560px">
