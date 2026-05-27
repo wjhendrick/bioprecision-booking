@@ -22,6 +22,14 @@ const cors       = require('cors');
 const { SquareClient, SquareEnvironment } = require('square');
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// ── Upstash Redis (persistent availability storage) ──────────────────────────
+const { Redis } = require('@upstash/redis');
+const redis = new Redis({
+  url:   process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+const AVAILABILITY_KEY = 'bp:availability';
 const axios      = require('axios');
 const XLSX       = require('xlsx');
 const crypto     = require('crypto');
@@ -58,35 +66,35 @@ async function sendEmail({ from, to, subject, html }) {
 // PATHS
 // ─────────────────────────────────────────────────────────────────────────────
 const ROSTER_PATH = path.join(__dirname, 'BioPrecision_Roster.xlsx');
-const AVAILABILITY_PATH = path.join(__dirname, 'availability.json');
-
 // ─────────────────────────────────────────────────────────────────────────────
-// AVAILABILITY STORE
-// Persists blocked slots and closed dates to a JSON file on the server.
+// AVAILABILITY STORE — Upstash Redis (persists across Railway restarts)
 // Structure: { closedDates: [...], blockedSlots: { 'YYYY-MM-DD': { 'HH:MM AM': { hit: bool, pitch: bool } } } }
 // ─────────────────────────────────────────────────────────────────────────────
-function loadAvailability() {
+async function loadAvailability() {
   try {
-    if (fs.existsSync(AVAILABILITY_PATH)) {
-      return JSON.parse(fs.readFileSync(AVAILABILITY_PATH, 'utf8'));
-    }
-  } catch(e) { console.error('Error loading availability:', e.message); }
+    const data = await redis.get(AVAILABILITY_KEY);
+    if (data) return typeof data === 'string' ? JSON.parse(data) : data;
+  } catch(e) { console.error('Error loading availability from Redis:', e.message); }
   return { closedDates: [], blockedSlots: {} };
 }
 
-function saveAvailability(data) {
+async function saveAvailability(data) {
   try {
-    fs.writeFileSync(AVAILABILITY_PATH, JSON.stringify(data, null, 2));
-  } catch(e) { console.error('Error saving availability:', e.message); }
+    await redis.set(AVAILABILITY_KEY, JSON.stringify(data));
+  } catch(e) { console.error('Error saving availability to Redis:', e.message); }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/availability
 // Returns current blocked slots and closed dates — called by booking form
 // ─────────────────────────────────────────────────────────────────────────────
-app.get('/api/availability', (req, res) => {
-  const data = loadAvailability();
-  res.json({ success: true, ...data });
+app.get('/api/availability', async (req, res) => {
+  try {
+    const data = await loadAvailability();
+    res.json({ success: true, ...data });
+  } catch(e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -94,14 +102,18 @@ app.get('/api/availability', (req, res) => {
 // Admin saves blocked slots and closed dates — called by admin dashboard
 // Requires admin password in request body
 // ─────────────────────────────────────────────────────────────────────────────
-app.post('/api/availability', (req, res) => {
+app.post('/api/availability', async (req, res) => {
   const { password, closedDates, blockedSlots } = req.body;
   if (password !== process.env.ADMIN_PASSWORD) {
     return res.status(401).json({ success: false, error: 'Unauthorized.' });
   }
-  saveAvailability({ closedDates, blockedSlots });
-  console.log('✅ Availability updated by admin');
-  res.json({ success: true });
+  try {
+    await saveAvailability({ closedDates, blockedSlots });
+    console.log('✅ Availability saved to Redis');
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
