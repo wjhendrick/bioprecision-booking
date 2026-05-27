@@ -330,18 +330,39 @@ async function updateRosterExcel(booking) {
 // EMAIL — Owner notification
 // ─────────────────────────────────────────────────────────────────────────────
 function getNotifyEmails(booking) {
-  // Always notify the owner
   const emails = [process.env.NOTIFY_EMAIL];
-  if (booking.clientType === 'individual') {
-    const side = booking.side || '';
-    if (side === 'hitting' || side === 'both') {
-      emails.push('mcannon@bioprecision.com'); // Micah Cannon — hitting
-    }
-    if (side === 'pitching' || side === 'both') {
-      emails.push('jemerson@bioprecision.com'); // Jacob Emerson — pitching
-    }
+
+  // Only route to staff for individual bookings (not team)
+  if (booking.clientType !== 'individual') {
+    return [...new Set(emails.filter(Boolean))];
   }
-  // Deduplicate and filter empty
+
+  // Determine sides from multiple sources — side, serviceType, and session name
+  const side        = (booking.side || '').toLowerCase();
+  const serviceType = (booking.serviceType || '').toLowerCase();
+  const session     = (booking.session || '').toLowerCase();
+
+  // Check hitting involvement
+  const isHitting =
+    side === 'hitting' ||
+    side === 'both' ||
+    serviceType === 'hitting' ||
+    serviceType === 'both' ||
+    session.includes('hitting');
+
+  // Check pitching involvement
+  const isPitching =
+    side === 'pitching' ||
+    side === 'both' ||
+    serviceType === 'pitching' ||
+    serviceType === 'both' ||
+    session.includes('pitching');
+
+  if (isHitting) emails.push('mcannon@bioprecision.com'); // Micah Cannon
+  if (isPitching) emails.push('jemerson@bioprecision.com'); // Jacob Emerson
+
+  console.log(`📧 Notification routing for "${booking.session}" — side:${side} type:${serviceType} → ${emails.join(', ')}`);
+
   return [...new Set(emails.filter(Boolean))];
 }
 
@@ -439,6 +460,11 @@ app.post('/api/test/charge', async (req, res) => {
       id: 'TEST_' + crypto.randomUUID().substring(0, 8).toUpperCase(),
       receiptUrl: 'https://squareup.com/receipt/preview/TEST',
     };
+
+    // Log what emails would be sent for debugging
+    const testEmails = getNotifyEmails(booking);
+    console.log(`🧪 TEST MODE — notifications going to: ${testEmails.join(', ')}`);
+    console.log(`   side: ${booking.side}, serviceType: ${booking.serviceType}, session: ${booking.session}`);
 
     await Promise.all([
       sendOwnerNotification(booking, fakePayment, amountMoney?.amount || 0),
