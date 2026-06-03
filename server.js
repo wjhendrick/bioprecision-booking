@@ -147,19 +147,36 @@ app.post('/api/square/charge', async (req, res) => {
 
   try {
     // 1. Charge the card via Square
-    const { result } = await squareClient.paymentsApi.createPayment({
-      sourceId,
-      idempotencyKey:    crypto.randomUUID(),
-      amountMoney: {
-        amount:   BigInt(amountMoney.amount),
-        currency: 'USD',
+    const squareResponse = await axios.post(
+      `${SQUARE_API_URL}/payments`,
+      {
+        source_id:       sourceId,
+        idempotency_key: crypto.randomUUID(),
+        amount_money: {
+          amount:   parseInt(amountMoney.amount),
+          currency: 'USD',
+        },
+        location_id:        process.env.SQUARE_LOCATION_ID,
+        note:               `BioPrecision: ${booking.session}`,
+        buyer_email_address: booking.email,
       },
-      locationId:        process.env.SQUARE_LOCATION_ID,
-      note:              `BioPrecision: ${booking.session}`,
-      buyerEmailAddress: booking.email,
-    });
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.SQUARE_ACCESS_TOKEN}`,
+          'Content-Type':  'application/json',
+          'Square-Version': '2024-01-18',
+        }
+      }
+    );
 
-    const payment = result.payment;
+    if (squareResponse.data.errors) {
+      throw new Error(squareResponse.data.errors[0].detail);
+    }
+
+    const payment = {
+      id:         squareResponse.data.payment.id,
+      receiptUrl: squareResponse.data.payment.receipt_url,
+    };
     console.log('✅ Square payment successful:', payment.id);
 
     // 2. Run all post-payment integrations in parallel
