@@ -147,11 +147,11 @@ app.post('/api/square/charge', async (req, res) => {
 
   try {
     // 1. Charge the card via Square
-    const { result } = await squareClient.payments.createPayment({
+    const { result } = await squareClient.paymentsApi.createPayment({
       sourceId,
       idempotencyKey:    crypto.randomUUID(),
       amountMoney: {
-        amount:   BigInt(amountMoney.amount), // Square uses cents as BigInt
+        amount:   BigInt(amountMoney.amount),
         currency: 'USD',
       },
       locationId:        process.env.SQUARE_LOCATION_ID,
