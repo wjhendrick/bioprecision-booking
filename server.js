@@ -19,7 +19,7 @@
 require('dotenv').config();
 const express    = require('express');
 const cors       = require('cors');
-const { SquareClient, SquareEnvironment } = require('square');
+// Square payments handled via direct HTTP API (axios)
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -57,10 +57,7 @@ app.get('/', (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // SQUARE CLIENT
 // ─────────────────────────────────────────────────────────────────────────────
-const squareClient = new SquareClient({
-  environment: SquareEnvironment.Production,
-  token: process.env.SQUARE_ACCESS_TOKEN,
-});
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EMAIL TRANSPORTER (Nodemailer)
