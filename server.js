@@ -178,9 +178,10 @@ app.post('/api/square/charge', async (req, res) => {
     console.log('✅ Square payment successful:', payment.id);
 
     // 2. Run all post-payment integrations in parallel
-    await Promise.all([
-      submitMondayForm(booking),
-      updateRosterExcel(booking),
+    // Run integrations in parallel — failures in Monday/Excel don't break payment confirmation
+    await Promise.allSettled([
+      submitMondayForm(booking).catch(e => console.warn('Monday.com skipped:', e.message)),
+      updateRosterExcel(booking).catch(e => console.warn('Excel update skipped:', e.message)),
       sendOwnerNotification(booking, payment, amountMoney.amount),
       sendClientConfirmation(booking, payment, amountMoney.amount),
     ]);
@@ -231,6 +232,11 @@ function getMondayLevel(level) {
 }
 
 async function submitMondayForm(booking) {
+  // Skip if Monday.com credentials not configured
+  if (!process.env.MONDAY_API_TOKEN || !process.env.MONDAY_BOARD_ID) {
+    console.log('Monday.com credentials not set — skipping');
+    return;
+  }
   const sessionTypes = getMondaySessionTypes(booking.serviceType, booking.side);
   const duration     = getMondayDuration(booking.sessionType);
   const level        = getMondayLevel(booking.level);
