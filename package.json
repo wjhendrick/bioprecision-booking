@@ -15,7 +15,6 @@
     "nodemailer": "^6.9.14",
     "resend": "^3.2.0",
     "@upstash/redis": "^1.28.0",
-    "square": "^35.0.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
