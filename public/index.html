@@ -647,50 +647,34 @@ function dateStr(d){ return d.toISOString().split('T')[0]; }
 function buildDatesUI(){buildDates();const row=document.getElementById('dateRow');row.innerHTML='';dates.forEach((d,i)=>{const dow=d.getDay();const ds=dateStr(d);const isClosed=!dayAvailability[dow]||closedDates.has(ds);const btn=document.createElement('div');btn.className='date-btn'+(isClosed?' closed-day':'');btn.innerHTML=`<div class="d-name">${d.toLocaleDateString('en-US',{weekday:'short'})}</div><div class="d-num">${d.getDate()}</div><div class="d-mon">${d.toLocaleDateString('en-US',{month:'short'})}</div>`;if(!isClosed){btn.onclick=()=>{selDateIdx=i;selTime=null;document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');buildSlotsUI();document.getElementById('slotSection').style.display='block';document.getElementById('noDateMsg').style.display='none';document.getElementById('btnStep3').disabled=true;};}row.appendChild(btn);});}
 
 function buildSlotsUI(){
-  const dur='tuneup'; // All in-lab sessions use 60-min slots
-  const times=generateTimes(dur);
-  const side=selSide==='both'?'hitting':selSide;
-  const sideLabel=selSide==='both'?'Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';
-  const grid=document.getElementById('slotGrid');grid.innerHTML='';
-  document.getElementById('slotsLabel').textContent=`Available ${dur==='assessment'?'90-min':'60-min'} slots — ${sideLabel}:`;
-  const ds=dates[selDateIdx]?dateStr(dates[selDateIdx]):'';
+  const grid = document.getElementById('timePrefGrid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  selTime = null;
+  document.getElementById('btnStep3').disabled = true;
 
-  // Convert time string to minutes since midnight for overlap checking
-  function timeToMins(t){
-    const [time,ampm]=t.split(' ');
-    let [h,m]=time.split(':').map(Number);
-    if(ampm==='PM'&&h!==12) h+=12;
-    if(ampm==='AM'&&h===12) h=0;
-    return h*60+m;
-  }
+  // Clear specific time field
+  const specField = document.getElementById('specificTime');
+  if(specField) specField.value = '';
 
-  const slotDurMins = 60; // All slots are 60-min blocks
+  const prefs = [
+    { label:'Morning', range:'8:00 AM – 12:00 PM', icon:'ti-sunrise', color:'#FEF3C7', border:'#FCD34D', text:'#92400E' },
+    { label:'Afternoon', range:'12:00 PM – 5:00 PM', icon:'ti-sun', color:'#DBEAFE', border:'#93C5FD', text:'#1D4ED8' },
+    { label:'Evening', range:'5:00 PM – 10:00 PM', icon:'ti-moon', color:'#EDE9FE', border:'#C4B5FD', text:'#5B21B6' },
+    { label:'No preference', range:'Any time works', icon:'ti-calendar-smile', color:'#F3F4F6', border:'#D1D5DB', text:'#374151' },
+  ];
 
-  times.forEach(t=>{
-    const slotStart=timeToMins(t);
-    const slotEnd=slotStart+slotDurMins;
-
-    // Check if ANY blocked slot on this date overlaps with this slot's time window
-    let isBlocked=false;
-    if(blockedSlots[ds]){
-      Object.keys(blockedSlots[ds]).forEach(blockedTime=>{
-        const bState=blockedSlots[ds][blockedTime];
-        if(!bState) return;
-        const bStart=timeToMins(blockedTime);
-        const bEnd=bStart+60; // admin blocks in 60-min increments
-
-        // Overlap check: slot overlaps with blocked period
-        const overlaps = slotStart < bEnd && slotEnd > bStart;
-        if(overlaps){
-          if((selSide==='hitting'||selSide==='both')&&bState.hit) isBlocked=true;
-          if((selSide==='pitching'||selSide==='both')&&bState.pitch) isBlocked=true;
-        }
-      });
-    }
-    const btn=document.createElement('button');
-    btn.className='slot-btn'+(isBlocked?' taken':'');
-    btn.innerHTML=`${t}<div class="slot-sub">${dur==='assessment'?'90 min':'60 min'}</div>`;
-    if(!isBlocked){btn.onclick=()=>{document.querySelectorAll('.slot-btn').forEach(s=>s.classList.remove('selected'));btn.classList.add('selected');selTime=t;document.getElementById('btnStep3').disabled=false;};}
+  prefs.forEach(p => {
+    const btn = document.createElement('div');
+    btn.style.cssText = `border:1px solid ${p.border};border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;background:${p.color};transition:all 0.15s;`;
+    btn.innerHTML = `<i class="ti ${p.icon}" style="font-size:22px;color:${p.text};display:block;margin-bottom:6px"></i><div style="font-size:13px;font-weight:600;color:${p.text}">${p.label}</div><div style="font-size:11px;color:${p.text};opacity:0.8;margin-top:3px">${p.range}</div>`;
+    btn.onclick = () => {
+      grid.querySelectorAll('div').forEach(b => { b.style.outline='none'; });
+      btn.style.outline = '2px solid #011244';
+      btn.style.outlineOffset = '2px';
+      selTime = p.label === 'No preference' ? 'No time preference' : p.label + ' (' + p.range + ')';
+      document.getElementById('btnStep3').disabled = false;
+    };
     grid.appendChild(btn);
   });
 }
