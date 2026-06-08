@@ -396,8 +396,18 @@
       </div>
       <p style="font-size:13px;font-weight:500;color:#6B7280;margin-bottom:6px">Select a date:</p>
       <div class="date-scroll" id="dateRow"></div>
-      <div id="slotSection" style="display:none"><p class="slots-label" id="slotsLabel">Available time slots:</p><div class="slot-grid" id="slotGrid"></div></div>
-      <div id="noDateMsg" class="no-date-msg">← Select a date to see available time slots.</div>
+      <div id="slotSection" style="display:none">
+        <div style="border:1px solid #E5E7EB;border-radius:10px;padding:1.25rem;background:#F9FAFB;margin-top:4px">
+          <p style="font-size:14px;font-weight:500;color:#111827;margin-bottom:4px">Do you have a preferred time on this date?</p>
+          <p style="font-size:13px;color:#6B7280;margin-bottom:14px">We will do all we can to accommodate your request.</p>
+          <div id="timePrefGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px"></div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <label style="font-size:12px;font-weight:500;color:#6B7280">Or enter a specific time preference (optional)</label>
+            <input type="text" id="specificTime" placeholder="e.g. Around 10am, After 2pm, Flexible..." style="padding:8px 12px;border:1px solid #D1D5DB;border-radius:7px;font-size:14px;font-family:inherit;color:#111827;background:#fff;" oninput="checkTimePref()">
+          </div>
+        </div>
+      </div>
+      <div id="noDateMsg" class="no-date-msg">← Select a date to continue.</div>
     </div>
     <div class="btn-row">
       <button class="btn-back" onclick="goStep(1)"><i class="ti ti-arrow-left"></i> Back</button>
@@ -790,7 +800,7 @@ function toggleAdmin(){
 
 function getScheduleMode(){if(selClientType==='team')return 'team';const types=[selHittingData?.type,selPitchingData?.type].filter(Boolean);if(types.length&&types.every(t=>t==='remote'))return 'remote';return 'live';}
 
-async function setupStep3(){await fetchAvailability();scheduleMode=getScheduleMode();document.getElementById('teamBypass').style.display='none';document.getElementById('remoteBypass').style.display='none';document.getElementById('liveSchedule').style.display='none';if(scheduleMode==='team'){document.getElementById('teamBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="We'll reach out to schedule your team session.";document.getElementById('btnStep3').innerHTML='Submit request <i class="ti ti-send"></i>';}else if(scheduleMode==='remote'){document.getElementById('remoteBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="Your remote session doesn't require a lab visit.";document.getElementById('btnStep3').innerHTML='Continue <i class="ti ti-arrow-right"></i>';}else{document.getElementById('liveSchedule').style.display='block';document.getElementById('schedSub').textContent="Select an available date and time below.";document.getElementById('btnStep3').innerHTML='Continue <i class="ti ti-arrow-right"></i>';const bc=selSide==='both'?'both':selSide,bl=selSide==='both'?'Two-Way — Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';document.getElementById('schedBadge').innerHTML=`<span class="sched-badge ${bc}"><i class="ti ti-${selSide==='pitching'?'wind':'ball-baseball'}"></i> ${bl}</span>`;buildAdminPanel();buildDatesUI();selDateIdx=null;selTime=null;document.getElementById('slotSection').style.display='none';document.getElementById('noDateMsg').style.display='block';document.getElementById('btnStep3').disabled=true;}}
+async function setupStep3(){await fetchAvailability();scheduleMode=getScheduleMode();document.getElementById('teamBypass').style.display='none';document.getElementById('remoteBypass').style.display='none';document.getElementById('liveSchedule').style.display='none';if(scheduleMode==='team'){document.getElementById('teamBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="We'll reach out to schedule your team session.";document.getElementById('btnStep3').innerHTML='Submit request <i class="ti ti-send"></i>';}else if(scheduleMode==='remote'){document.getElementById('remoteBypass').style.display='block';document.getElementById('btnStep3').disabled=false;document.getElementById('schedSub').textContent="Your remote session doesn't require a lab visit.";document.getElementById('btnStep3').innerHTML='Continue <i class="ti ti-arrow-right"></i>';}else{document.getElementById('liveSchedule').style.display='block';document.getElementById('schedSub').textContent="Select an available date and your preferred time of day.";document.getElementById('btnStep3').innerHTML='Continue <i class="ti ti-arrow-right"></i>';const bc=selSide==='both'?'both':selSide,bl=selSide==='both'?'Two-Way — Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';document.getElementById('schedBadge').innerHTML=`<span class="sched-badge ${bc}"><i class="ti ti-${selSide==='pitching'?'wind':'ball-baseball'}"></i> ${bl}</span>`;buildAdminPanel();buildDatesUI();selDateIdx=null;selTime=null;document.getElementById('slotSection').style.display='none';document.getElementById('noDateMsg').style.display='block';document.getElementById('btnStep3').disabled=true;}}
 
 function buildConfirm(){
   document.getElementById('sumName').textContent=document.getElementById('fname').value+' '+document.getElementById('lname').value;
@@ -813,7 +823,7 @@ function buildConfirm(){
   }
   document.getElementById('sumSession').textContent=sessions.join(' + ')||'—';
   if(scheduleMode==='team'||scheduleMode==='remote'){document.getElementById('sumSideRow').style.display='none';document.getElementById('sumDateRow').style.display='none';}
-  else{document.getElementById('sumSideRow').style.display='flex';document.getElementById('sumDateRow').style.display='flex';document.getElementById('sumSide').textContent=selSide==='both'?'Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';document.getElementById('sumDateTime').textContent=(selDateIdx!==null&&selTime)?formatDate(dates[selDateIdx])+' at '+selTime:'—';}
+  else{document.getElementById('sumSideRow').style.display='flex';document.getElementById('sumDateRow').style.display='flex';document.getElementById('sumSide').textContent=selSide==='both'?'Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';document.getElementById('sumDateTime').textContent=(selDateIdx!==null&&selTime)?formatDate(dates[selDateIdx])+' — '+selTime:'—';}
   const priceStr=prices.join(' + ')||'—';
   document.getElementById('sumPrice').textContent=priceStr;
   document.getElementById('payAmount').textContent=priceStr;
@@ -991,6 +1001,17 @@ async function runTestCharge(){
     btn.disabled=false;
     btn.innerHTML='<i class="ti ti-send"></i> Send test emails (no charge)';
   }
+}
+
+function checkTimePref(){
+  // Enable continue if a time pref card is selected OR specific time is entered
+  const specific = document.getElementById('specificTime');
+  const hasSpecific = specific && specific.value.trim();
+  const hasCard = selTime && selTime !== null;
+  if(hasSpecific) {
+    selTime = document.getElementById('specificTime').value.trim();
+  }
+  document.getElementById('btnStep3').disabled = !(hasCard || hasSpecific);
 }
 
 function goStep(n){
