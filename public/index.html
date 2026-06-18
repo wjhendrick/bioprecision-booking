@@ -848,7 +848,8 @@ async function processPayment(){
     const email=document.getElementById('email').value.trim(),phone=document.getElementById('phone').value.trim();
     const priceStr=document.getElementById('payAmount').textContent.replace(/[^0-9.]/g,'');
     const amountCents=Math.round(parseFloat(priceStr)*100);
-    const tokenResult=await squareCard.tokenize({amount:priceStr,billingContact:{givenName:fname,familyName:lname,email,phone,countryCode:'US'},currencyCode:'USD',intent:'CHARGE',customerInitiated:true,sellerKeyedIn:false});
+    // Simple tokenize - no verification details to avoid SCA failures
+    const tokenResult=await squareCard.tokenize();
     if(tokenResult.status==='OK'){
       const response=await fetch(SERVER_URL+'/api/square/charge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         sourceId:tokenResult.token,
@@ -870,7 +871,11 @@ async function processPayment(){
       const result=await response.json();
       if(result.success){showSuccessScreen();}
       else{throw new Error(result.error||'Payment was declined.');}
-    }else{throw new Error(tokenResult.errors.map(e=>e.message).join(' '));}
+    }else{
+      const errMsg = tokenResult.errors ? tokenResult.errors.map(e=>e.message).join(' ') : 'Card could not be processed. Please check your card details and try again.';
+      console.error('Tokenization failed:', tokenResult);
+      throw new Error(errMsg);
+    }
   }catch(err){
     console.error('Payment error:',err);
     showPayStatus(err.message||'Payment failed. Please try again.',true);
