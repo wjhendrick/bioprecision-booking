@@ -796,21 +796,60 @@ function buildConfirm(){
   document.getElementById('sumReferral').textContent=document.getElementById('referral').value||'—';
   const ctL=selClientType==='individual'?'Individual':'Team',stL=selServiceType==='both'?'Both (Two-Way)':selServiceType==='hitting'?'Hitting':'Pitching';
   document.getElementById('sumServiceType').textContent=ctL+' — '+stL;
-  const sessions=[],prices=[];
+  const sessions=[],priceNums=[];
   if(selClientType==='team'){
     const key='team-'+(selServiceType==='hitting'?'hit':selServiceType==='pitching'?'pitch':'both');
     const src=selServiceType==='hitting'?TEAM_HITTING:selServiceType==='pitching'?TEAM_PITCHING:TEAM_BOTH;
-    if(teamSelections[key]){teamSelections[key].forEach(i=>{sessions.push(src[i].name);prices.push(src[i].price);});}
+    if(teamSelections[key]){teamSelections[key].forEach(i=>{
+      sessions.push(src[i].name);
+      const p=parseFloat(src[i].price.replace(/[^0-9.]/g,''))||0;
+      priceNums.push(p);
+    });}
   } else {
-    if((selServiceType==='hitting'||selServiceType==='both')&&selHittingData){sessions.push(selHittingData.name);prices.push(selHittingData.price);}
-    if((selServiceType==='pitching'||selServiceType==='both')&&selPitchingData){sessions.push(selPitchingData.name);prices.push(selPitchingData.price);}
+    if((selServiceType==='hitting'||selServiceType==='both')&&selHittingData){
+      sessions.push(selHittingData.name);
+      priceNums.push(parseFloat(selHittingData.price.replace(/[^0-9.]/g,''))||0);
+    }
+    if((selServiceType==='pitching'||selServiceType==='both')&&selPitchingData){
+      sessions.push(selPitchingData.name);
+      priceNums.push(parseFloat(selPitchingData.price.replace(/[^0-9.]/g,''))||0);
+    }
   }
   document.getElementById('sumSession').textContent=sessions.join(' + ')||'—';
   if(scheduleMode==='team'||scheduleMode==='remote'){document.getElementById('sumSideRow').style.display='none';document.getElementById('sumDateRow').style.display='none';}
   else{document.getElementById('sumSideRow').style.display='flex';document.getElementById('sumDateRow').style.display='flex';document.getElementById('sumSide').textContent=selSide==='both'?'Hitting & Pitching':selSide==='hitting'?'Hitting side':'Pitching side';document.getElementById('sumDateTime').textContent=(selDateIdx!==null&&selTime)?formatDate(dates[selDateIdx])+' — '+selTime:'—';}
-  const priceStr=prices.join(' + ')||'—';
-  document.getElementById('sumPrice').textContent=priceStr;
-  document.getElementById('payAmount').textContent=priceStr;
+
+  // Calculate total — apply 15% Two-Way discount for individual both sessions
+  let totalNum = priceNums.reduce((a,b)=>a+b,0);
+  let priceDisplay = '';
+  let discountRow = document.getElementById('sumDiscountRow');
+
+  if(selClientType==='individual' && selServiceType==='both' && priceNums.length===2){
+    const discount = Math.round(totalNum * 0.15 * 100) / 100;
+    const discounted = Math.round((totalNum - discount) * 100) / 100;
+    priceDisplay = '$' + discounted.toFixed(2);
+    // Show discount breakdown
+    if(!discountRow){
+      const totalRow = document.querySelector('.summary-total');
+      const dRow = document.createElement('div');
+      dRow.className = 'summary-row';
+      dRow.id = 'sumDiscountRow';
+      dRow.innerHTML = `<span class="summary-label" style="color:#065F46">Two-Way discount (15%)</span><span class="summary-val" style="color:#065F46">-$${discount.toFixed(2)}</span>`;
+      totalRow.parentNode.insertBefore(dRow, totalRow);
+    } else {
+      const discount2 = Math.round(totalNum * 0.15 * 100) / 100;
+      discountRow.innerHTML = `<span class="summary-label" style="color:#065F46">Two-Way discount (15%)</span><span class="summary-val" style="color:#065F46">-$${discount2.toFixed(2)}</span>`;
+      discountRow.style.display='flex';
+    }
+    totalNum = discounted;
+  } else {
+    // Hide discount row if not two-way
+    if(discountRow) discountRow.style.display='none';
+    priceDisplay = totalNum > 0 ? '$' + totalNum.toFixed(2) : (priceNums.length ? priceNums.map(p=>'$'+p.toFixed(2)).join(' + ') : '—');
+  }
+
+  document.getElementById('sumPrice').textContent = priceDisplay;
+  document.getElementById('payAmount').textContent = priceDisplay;
   document.getElementById('sigFullName').value=document.getElementById('fname').value+' '+document.getElementById('lname').value;
   document.getElementById('sigContact').value=document.getElementById('email').value;
 }
@@ -846,8 +885,9 @@ async function processPayment(){
   try{
     const fname=document.getElementById('fname').value.trim(),lname=document.getElementById('lname').value.trim();
     const email=document.getElementById('email').value.trim(),phone=document.getElementById('phone').value.trim();
-    const priceStr=document.getElementById('payAmount').textContent.replace(/[^0-9.]/g,'');
-    const amountCents=Math.round(parseFloat(priceStr)*100);
+    const rawPrice=document.getElementById('payAmount').textContent.replace(/[^0-9.]/g,'');
+    const amountCents=Math.round(parseFloat(rawPrice)*100);
+    const priceStr=rawPrice;
     // Simple tokenize - no verification details to avoid SCA failures
     const tokenResult=await squareCard.tokenize();
     if(tokenResult.status==='OK'){
