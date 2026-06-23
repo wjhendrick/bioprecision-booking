@@ -435,8 +435,17 @@ async function sendOwnerNotification(booking, payment, amountCents) {
             <tr><td style="padding:6px 0;color:#6B7280;width:140px">Athlete / Coach</td><td><strong>${booking.name}</strong></td></tr>
             <tr><td style="padding:6px 0;color:#6B7280">Email</td><td>${booking.email}</td></tr>
             <tr><td style="padding:6px 0;color:#6B7280">Phone</td><td>${booking.phone || '—'}</td></tr>
+           <tr><td style="padding:6px 0;color:#6B7280">Height</td><td>${booking.heightFt ? booking.heightFt + "'" + (booking.heightIn || '0') + '"' : '—'}</td></tr>
+            <tr><td style="padding:6px 0;color:#6B7280">Weight</td><td>${booking.weight ? booking.weight + ' lbs' : '—'}</td></tr>
+            <tr><td style="padding:6px 0;color:#6B7280">Throws</td><td>${booking.throws || '—'}</td></tr>
+            <tr><td style="padding:6px 0;color:#6B7280">Bats</td><td>${booking.bats || '—'}</td></tr>
             <tr><td style="padding:6px 0;color:#6B7280">Level</td><td>${booking.level || '—'}</td></tr>
-            <tr><td style="padding:6px 0;color:#6B7280">Session</td><td>${booking.session}</td></tr>
+            <tr><td style="padding:6px 0;color:#6B7280;width:130px">Session</td><td><strong>${booking.session}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:#6B7280">Height</td><td>${booking.heightFt ? booking.heightFt + "'" + (booking.heightIn || '0') + '"' : '—'}</td></tr>
+            <tr><td style="padding:6px 0;color:#6B7280">Weight</td><td>${booking.weight ? booking.weight + ' lbs' : '—'}</td></tr>
+            <tr><td style="padding:6px 0;color:#6B7280">Throws</td><td>${booking.throws || '—'}</td></tr>
+            <tr><td style="padding:6px 0;color:#6B7280">Bats</td><td>${booking.bats || '—'}</td></tr>
+            ${dateTimeRow}
             <tr><td style="padding:6px 0;color:#6B7280">Lab side</td><td>${booking.side || '—'}</td></tr>
             <tr><td style="padding:6px 0;color:#6B7280">Date & Time</td><td>${booking.dateTime || 'Remote / Team TBD'}</td></tr>
             <tr><td style="padding:6px 0;color:#6B7280">Referred by</td><td>${booking.referral || '—'}</td></tr>
