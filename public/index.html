@@ -887,8 +887,6 @@ async function processPayment(){
     const email=document.getElementById('email').value.trim(),phone=document.getElementById('phone').value.trim();
     const rawPrice=document.getElementById('payAmount').textContent.replace(/[^0-9.]/g,'');
     const amountCents=Math.round(parseFloat(rawPrice)*100);
-    const priceStr=rawPrice;
-    // Simple tokenize - no verification details to avoid SCA failures
     const tokenResult=await squareCard.tokenize();
     if(tokenResult.status==='OK'){
       const response=await fetch(SERVER_URL+'/api/square/charge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
@@ -896,9 +894,9 @@ async function processPayment(){
         amountMoney:{amount:amountCents,currency:'USD'},
         booking:{
           name:fname+' '+lname,firstName:fname,lastName:lname,email,phone,
-          weight:document.getElementById('weight').value,
           heightFt:document.getElementById('heightFt').value,
           heightIn:document.getElementById('heightIn').value,
+          weight:document.getElementById('weight').value,
           throws:document.getElementById('throws').value,
           bats:document.getElementById('bats').value,
           level:document.getElementById('level').value,
@@ -998,7 +996,7 @@ async function runTestCharge(){
   try{
     const fname=document.getElementById('fname').value.trim()||'Test';
     const lname=document.getElementById('lname').value.trim()||'User';
-    const email=document.getElementById('email').value.trim()||process.env?.NOTIFY_EMAIL||'test@test.com';
+    const email=document.getElementById('email').value.trim()||'test@test.com';
     const priceStr=document.getElementById('payAmount').textContent.replace(/[^0-9.]/g,'')||'0';
     const amountCents=Math.round(parseFloat(priceStr)*100)||0;
     const response=await fetch('/api/test/charge',{
@@ -1009,9 +1007,9 @@ async function runTestCharge(){
         booking:{
           name:fname+' '+lname,firstName:fname,lastName:lname,
           email,phone:document.getElementById('phone').value||'—',
-          weight:document.getElementById('weight').value,
           heightFt:document.getElementById('heightFt').value,
           heightIn:document.getElementById('heightIn').value,
+          weight:document.getElementById('weight').value,
           throws:document.getElementById('throws').value,
           bats:document.getElementById('bats').value,
           level:document.getElementById('level').value,
